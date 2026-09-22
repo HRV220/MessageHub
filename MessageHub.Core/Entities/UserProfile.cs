@@ -4,9 +4,39 @@ public class UserProfile
 {
   public Guid Id { get; private set; }
   public string Username { get; private set; }
-  public string PasswordHash { get; private set; }
-  public string SecurityQuestion { get; private set; }
-  public string SecurityAnswerHash { get; private set; }
+
+  public string PasswordHash
+  {
+    get;
+    private set
+    {
+      if (string.IsNullOrWhiteSpace(value))
+        throw new ArgumentException("PasswordHash must not be empty.", nameof(value));
+      field = value;
+    }
+  } = null!;
+
+  public string SecurityQuestion
+  {
+    get;
+    private set
+    {
+      if (string.IsNullOrWhiteSpace(value))
+        throw new ArgumentException("SecurityQuestion must not be empty.", nameof(value));
+      field = value;
+    }
+  } = null!;
+
+  public string SecurityAnswerHash
+  {
+    get;
+    private set
+    {
+      if (string.IsNullOrWhiteSpace(value))
+        throw new ArgumentException("SecurityAnswerHash must not be empty.", nameof(value));
+      field = value;
+    }
+  } = null!;
 
   private UserProfile(Guid id, string username, string passwordHash, string securityQuestion, string securityAnswerHash)
   {
@@ -26,12 +56,6 @@ public class UserProfile
   {
     if (string.IsNullOrWhiteSpace(username))
       throw new ArgumentException("Username must not be empty.", nameof(username));
-    if (string.IsNullOrWhiteSpace(passwordHash))
-      throw new ArgumentException("PasswordHash must not be empty.", nameof(passwordHash));
-    if (string.IsNullOrWhiteSpace(securityQuestion))
-      throw new ArgumentException("SecurityQuestion must not be empty.", nameof(securityQuestion));
-    if (string.IsNullOrWhiteSpace(securityAnswerHash))
-      throw new ArgumentException("SecurityAnswerHash must not be empty.", nameof(securityAnswerHash));
 
     return new UserProfile(Guid.NewGuid(), username, passwordHash, securityQuestion, securityAnswerHash);
   }
@@ -42,8 +66,6 @@ public class UserProfile
   /// <exception cref="ArgumentException"><paramref name="newPasswordHash"/> is null or whitespace.</exception>
   public void ChangePassword(string newPasswordHash)
   {
-    if (string.IsNullOrWhiteSpace(newPasswordHash))
-      throw new ArgumentException("PasswordHash must not be empty.", nameof(newPasswordHash));
     PasswordHash = newPasswordHash;
   }
 
@@ -53,11 +75,6 @@ public class UserProfile
   /// <exception cref="ArgumentException">Any argument is null or whitespace.</exception>
   public void SetSecurityQuestion(string question, string answerHash)
   {
-    if (string.IsNullOrWhiteSpace(question))
-      throw new ArgumentException("SecurityQuestion must not be empty.", nameof(question));
-    if (string.IsNullOrWhiteSpace(answerHash))
-      throw new ArgumentException("SecurityAnswerHash must not be empty.", nameof(answerHash));
-
     SecurityQuestion = question;
     SecurityAnswerHash = answerHash;
   }
