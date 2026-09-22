@@ -6,26 +6,34 @@ public class Message
 {
   public Guid Id { get; private set; }
   public string ExternalId { get; private set; }
-  public string Text { get; private set; }
+
+  public string Text
+  {
+    get;
+    private set
+    {
+      if (string.IsNullOrWhiteSpace(value))
+        throw new ArgumentException("Text must not be empty.", nameof(value));
+      field = value;
+    }
+  } = null!;
+
   public string Sender { get; private set; }
   public DateTime SendedAt { get; private set; }
   public string ChannelName { get; private set; }
   public MessageStatus Status { get; private set; }
   public MessageDirection Direction { get; private set; }
 
-  public bool IsIncoming => Direction == MessageDirection.Incoming;
-  public bool IsOutgoing => Direction == MessageDirection.Outgoing;
-
   private Message(Guid id, string externalId, string text, string sender, DateTime sendedAt, string channelName, MessageStatus status, MessageDirection direction)
   {
     Id = id;
     ExternalId = externalId;
-    Text = text;
     Sender = sender;
     SendedAt = sendedAt;
     ChannelName = channelName;
     Status = status;
     Direction = direction;
+    Text = text;
   }
 
   /// <summary>
@@ -36,8 +44,6 @@ public class Message
   {
     if (string.IsNullOrWhiteSpace(externalId))
       throw new ArgumentException("ExternalId must not be empty.", nameof(externalId));
-    if (string.IsNullOrWhiteSpace(text))
-      throw new ArgumentException("Text must not be empty.", nameof(text));
     if (string.IsNullOrWhiteSpace(sender))
       throw new ArgumentException("Sender must not be empty.", nameof(sender));
     if (string.IsNullOrWhiteSpace(channelName))
@@ -96,8 +102,6 @@ public class Message
   /// <exception cref="ArgumentException"><paramref name="newText"/> is null or whitespace.</exception>
   public void EditText(string newText)
   {
-    if (string.IsNullOrWhiteSpace(newText))
-      throw new ArgumentException("Text must not be empty.", nameof(newText));
     Text = newText;
   }
 }
