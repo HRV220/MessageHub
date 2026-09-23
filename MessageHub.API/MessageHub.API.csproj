@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MessageHub.Application\MessageHub.Application.csproj" />
+    <ProjectReference Include="..\MessageHub.Infrastructure\MessageHub.Infrastructure.csproj" />
+    <ProjectReference Include="..\MessageHub.Channels\MessageHub.Channels.csproj" />
   </ItemGroup>
 
 </Project>

@@ -33,7 +33,7 @@
 
 - [x] **T-001** Создать проект `MessageHub.Application`, добавить в `MessageHub.slnx`, `ProjectReference` на `Core` (1ч, зависит: —) — АРХ-01…03
 - [x] **T-002** Проставить `ProjectReference`: `Infrastructure`/`Channels`/`Api` → `Application` (не напрямую на `Core`, кроме транзитивно); удалить пустые `Class1.cs` (1ч, зависит: T-001) — АРХ-01…03
-- [ ] **T-003** `Program.cs`: секции регистрации по слоям (`AddApplication`, `AddInfrastructure`, `AddChannels` — пока пустые методы-расширения) + `/health` эндпоинт (2ч, зависит: T-002) — АРХ-07
+- [x] **T-003** `Program.cs`: секции регистрации по слоям (`AddApplication`, `AddInfrastructure`, `AddChannels` — пока пустые методы-расширения) + `/health` эндпоинт (2ч, зависит: T-002) — АРХ-07
 - [ ] **T-004** Решить и задокументировать подход к доступу к SQLite (EF Core vs `Microsoft.Data.Sqlite` + Dapper/ручной маппинг) — короткий ADR в `docs/adr/` с обоснованием (НФТ-25/26 требуют маппинг без рефлексии) (2ч, зависит: —) — НФТ-25, НФТ-26
 - [ ] **T-005** Infrastructure: открытие файла SQLite в стандартной папке данных приложения (`%LOCALAPPDATA%`), установка `PRAGMA foreign_keys=ON, journal_mode=WAL, synchronous=NORMAL, busy_timeout` при каждом открытии соединения (3ч, зависит: T-004) — НФТ-13, НФТ-11
 - [ ] **T-006** Первая миграция/скрипт схемы БД по `schema.dbml` — все таблицы `user_profiles`…`sync_states`, индексы (без CHECK — SQLite ограничен, проверки на уровне приложения) (4ч, зависит: T-005) — НФТ-12
