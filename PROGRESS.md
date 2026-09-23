@@ -2,19 +2,35 @@
 
 ## Текущая задача
 
-T-004 — ADR о подходе к доступу к SQLite. Решение согласовано с пользователем: EF Core (`Microsoft.EntityFrameworkCore.Sqlite`) как технология доступа, маппинг — вручную (без AutoMapper/рефлексии) как для проекций чтения списков/лент в DTO (НФТ-25), так и между EF-моделью и доменными сущностями `Core` (НФТ-26).
+T-005 — Infrastructure: открытие файла SQLite в `%LOCALAPPDATA%`, `PRAGMA` при каждом соединении. Пользователь начал реализацию сам (`ApplicationContext` + `SQLiteConnectionInterceptor`), затем попросил ревью и правку найденных замечаний по варианту C (вся EF-конфигурация — в `OnConfiguring`, `AddDbContext` без options-делегата).
+
+Найдено и исправлено ревью-агентом:
+- **Баг**: конструктор `ApplicationContext` принимал `IDbConnectionInterceptor` через DI, но нигде не регистрировался как сервис — `services.GetRequiredService<ApplicationContext>()` падал с `InvalidOperationException: Unable to resolve service for type 'IDbConnectionInterceptor'` (проверено практически через отдельный DI-харнесс в scratchpad). Причина — интерцептор одновременно добавлялся другим путём (`new SQLiteConnectionInterceptor()` прямо в `AddDbContext`), конструкторная инъекция была лишней и нерабочей.
+- **Исправление (вариант C)**: убрана инъекция интерцептора через конструктор; вся конфигурация (`UseSqlite`, `AddInterceptors`) — только в `OnConfiguring` с проверкой `IsConfigured`; `AddInfrastructure` теперь просто `services.AddDbContext<MessageHubDbContext>();` без options-делегата. Выбран этот вариант (а не DI-регистрация интерцептора), т.к. он не требует отдельной `IDesignTimeDbContextFactory` для `dotnet ef migrations` в T-006.
+- Коллизия имени: класс `ApplicationContext` лежал в namespace `MessageHub.Infrastructure.ApplicationContext` (то же имя, что и класс) — та же ловушка, что уже описана ниже для `Core.Entities.ConnectedAccount`. Класс переименован в `MessageHubDbContext`, перенесён в namespace `MessageHub.Infrastructure.Data`.
+- `SQLiteConnectionInterceptor.cs` был без `namespace` (объявлен в глобальном пространстве имён) — добавлен `namespace MessageHub.Infrastructure.Data.Interceptors`, класс переименован в `SqliteConnectionInterceptor` (капитализация как в пакетах `Microsoft.*.Sqlite`).
+- ALL_CAPS-поля (`DATABASE_PATH`, `DB_PARAMETERS`) не соответствовали стилю репозитория (везде PascalCase) — переименованы в `DatabasePath`/`PragmaStatements`; вычисление пути вынесено в отдельный файл `DatabasePath.cs` с кэшированием через `Lazy<string>` (раньше `Directory.CreateDirectory` дёргался на каждое создание `DbContext`).
+
+Итоговая структура: `MessageHub.Infrastructure/Data/MessageHubDbContext.cs`, `Data/DatabasePath.cs`, `Data/Interceptors/SqliteConnectionInterceptor.cs`.
 
 ## Чеклист шагов
 
-- [x] Свериться с точными формулировками НФТ-25/НФТ-26 в `docs/TZ_Local_Messenger_Hub.md` (skill `tz-trace-check`)
-- [x] Написать `docs/adr/0001-sqlite-data-access.md` (контекст, решение, альтернативы, последствия)
-- [x] Отметить T-004 выполненной в `docs/TASKS.md`
+- [x] Разобрать код пользователя, найти баги/несоответствия конвенциям (см. выше)
+- [x] Подтвердить баг DI практически (отдельный харнесс в scratchpad, `dotnet run`) — воспроизведён
+- [x] Подтвердить, что PRAGMA-батч реально применяется через `Microsoft.Data.Sqlite` (`ExecuteNonQuery` с multi-statement `CommandText`) — да, все 4 PRAGMA подтверждены через `PRAGMA <name>;`
+- [x] Реализовать вариант C, переименования, namespace-фиксы
+- [x] `dotnet build` — успешно (0 ошибок, только пред-существующее `NU1903` про `Microsoft.OpenApi`, не относится к правке)
+- [x] `dotnet test` — 46/46 пройдено
+- [x] Повторно подтвердить фикс тем же DI-харнессом — `MessageHubDbContext` резолвится, `ConnectionString=Data Source=...\MessageHub\message_hub.db`
+- [x] Убрать временный scratchpad-харнесс
 
-## Статус: готово
+## Статус: готово (T-005 частично — PRAGMA/путь к БД сделаны; миграция схемы — T-006, отдельная задача)
 
-Только документация, `dotnet build`/`dotnet test` не требовались (изменений в коде нет). Коммит не делался (не просили).
+Коммит не делался (не просили).
 
-Следующая задача по дорожке 0, зависящая от этого решения — T-005 (открытие файла SQLite в `%LOCALAPPDATA%`, `PRAGMA` при каждом соединении).
+## Из предыдущей задачи (ADR доступа к SQLite, T-004) — выполнено
+
+EF Core (`Microsoft.EntityFrameworkCore.Sqlite`) как технология доступа, маппинг — вручную (без AutoMapper/рефлексии) как для проекций чтения списков/лент в DTO (НФТ-25), так и между EF-моделью и доменными сущностями `Core` (НФТ-26). См. `docs/adr/0001-sqlite-data-access.md`.
 
 ## Из предыдущей задачи (реструктуризация папок Core) — выполнено
 
