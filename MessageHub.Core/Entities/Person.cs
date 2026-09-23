@@ -2,8 +2,14 @@ namespace MessageHub.Core.Entities;
 
 public class Person
 {
+  /// <summary>
+  /// Unique identifier of this person.
+  /// </summary>
   public Guid Id { get; private set; }
 
+  /// <summary>
+  /// Short name used to identify this person in lists and search.
+  /// </summary>
   public string Username
   {
     get;
@@ -15,13 +21,32 @@ public class Person
     }
   } = null!;
 
+  /// <summary>
+  /// First name, if known.
+  /// </summary>
   public string? FirstName { get; private set; }
+
+  /// <summary>
+  /// Last name, if known.
+  /// </summary>
   public string? LastName { get; private set; }
+
+  /// <summary>
+  /// Phone number, if known.
+  /// </summary>
   public string? Phone { get; private set; }
+
+  /// <summary>
+  /// Email address, if known.
+  /// </summary>
   public string? Email { get; private set; }
-  //TODO: Поменять ValueObject Channels (vk, tg, email and etc.)
-  private readonly List<string> _connectedChannels = [];
-  public IReadOnlyList<string> ConnectedChannels => _connectedChannels;
+
+  private readonly List<ChannelContact> _channelContacts = [];
+
+  /// <summary>
+  /// This person's identities across all channels (channel_contacts.person_id → person.id).
+  /// </summary>
+  public IReadOnlyList<ChannelContact> ChannelContacts => _channelContacts;
 
   private Person(Guid id, string username, string? firstName, string? lastName, string? phone, string? email)
   {
@@ -68,23 +93,29 @@ public class Person
   }
 
   /// <summary>
-  /// Connects a channel (e.g. Telegram, WhatsApp) to this person, if not already connected.
+  /// Adds a new channel identity for this person, as seen through one of the user's connected
+  /// accounts (US-08). <see cref="ChannelContact"/> is created here, not by the caller, so it is
+  /// always linked to this person's <see cref="Id"/> from the start.
   /// </summary>
-  /// <exception cref="ArgumentException"><paramref name="channelName"/> is null or whitespace.</exception>
-  public void ConnectChannel(string channelName)
+  /// <exception cref="ArgumentException"><paramref name="connectedAccountId"/> is empty, or <paramref name="externalId"/> is null or whitespace.</exception>
+  /// <exception cref="InvalidOperationException">This person already has an identity with the same <paramref name="connectedAccountId"/> and <paramref name="externalId"/>.</exception>
+  public ChannelContact AddChannelContact(Guid connectedAccountId, string externalId, string? username = null, string? displayName = null, string? phone = null, string? email = null)
   {
-    if (string.IsNullOrWhiteSpace(channelName))
-      throw new ArgumentException("ChannelName must not be empty.", nameof(channelName));
+    if (_channelContacts.Any(c => c.ConnectedAccountId == connectedAccountId && c.ExternalId == externalId))
+      throw new InvalidOperationException("This channel identity is already linked to this person.");
 
-    if (!_connectedChannels.Contains(channelName))
-      _connectedChannels.Add(channelName);
+    var contact = ChannelContact.Create(Id, connectedAccountId, externalId, username, displayName, phone, email);
+    _channelContacts.Add(contact);
+    return contact;
   }
 
   /// <summary>
-  /// Disconnects a channel from this person, if connected.
+  /// Unlinks a channel identity from this person (ФТ-504). The <see cref="ChannelContact"/> itself,
+  /// and the conversations and messages linked through it, are not affected here — the caller decides
+  /// their fate (reassign to a new person, or ignore).
   /// </summary>
-  public void DisconnectChannel(string channelName)
+  public void RemoveChannelContact(Guid channelContactId)
   {
-    _connectedChannels.Remove(channelName);
+    _channelContacts.RemoveAll(c => c.Id == channelContactId);
   }
 }

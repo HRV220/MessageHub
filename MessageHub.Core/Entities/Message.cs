@@ -4,9 +4,19 @@ namespace MessageHub.Core.Entities;
 
 public class Message
 {
+  /// <summary>
+  /// Unique identifier of this message.
+  /// </summary>
   public Guid Id { get; private set; }
+
+  /// <summary>
+  /// Identifier of this message in the external service.
+  /// </summary>
   public string ExternalId { get; private set; }
 
+  /// <summary>
+  /// The message's text content.
+  /// </summary>
   public string Text
   {
     get;
@@ -18,10 +28,29 @@ public class Message
     }
   } = null!;
 
+  /// <summary>
+  /// Identifier or display name of who sent the message.
+  /// </summary>
   public string Sender { get; private set; }
+
+  /// <summary>
+  /// When the message was sent, in UTC.
+  /// </summary>
   public DateTime SendedAt { get; private set; }
+
+  /// <summary>
+  /// Name of the channel this message came from or was sent through.
+  /// </summary>
   public string ChannelName { get; private set; }
+
+  /// <summary>
+  /// Current delivery status of the message.
+  /// </summary>
   public MessageStatus Status { get; private set; }
+
+  /// <summary>
+  /// Whether the message was received from, or sent to, the other side.
+  /// </summary>
   public MessageDirection Direction { get; private set; }
 
   private Message(Guid id, string externalId, string text, string sender, DateTime sendedAt, string channelName, MessageStatus status, MessageDirection direction)

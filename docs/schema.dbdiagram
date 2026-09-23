@@ -1,0 +1,311 @@
+{
+  "version": "3.0.0",
+  "darkMode": true,
+  "gridEnabling": false,
+  "currentViewName": null,
+  "defaultView": {
+    "detailLevel": "All",
+    "relationshipMode": "All",
+    "tablePositions": [
+      {
+        "name": "user_profiles",
+        "schemaName": "public",
+        "x": 16,
+        "y": 16
+      },
+      {
+        "name": "settings",
+        "schemaName": "public",
+        "x": 500.5544405966234,
+        "y": 102.90862487388111
+      },
+      {
+        "name": "connected_accounts",
+        "schemaName": "public",
+        "x": 16,
+        "y": 352
+      },
+      {
+        "name": "people",
+        "schemaName": "public",
+        "x": 41.5,
+        "y": 1072.1887659825668
+      },
+      {
+        "name": "conversations",
+        "schemaName": "public",
+        "x": 1048,
+        "y": 576
+      },
+      {
+        "name": "conversation_participants",
+        "schemaName": "public",
+        "x": 1078.35302734375,
+        "y": 1082.5091343767913
+      },
+      {
+        "name": "messages",
+        "schemaName": "public",
+        "x": 1730.3816515556343,
+        "y": 790.5635421836192
+      },
+      {
+        "name": "merge_proposals",
+        "schemaName": "public",
+        "x": 58.29443359375,
+        "y": 756.7846516481477
+      },
+      {
+        "name": "relation_change_logs",
+        "schemaName": "public",
+        "x": 514.5015895209123,
+        "y": 1326.0647332506126
+      },
+      {
+        "name": "sync_states",
+        "schemaName": "public",
+        "x": 1725.8731855406836,
+        "y": 320.563193630187
+      },
+      {
+        "name": "channel_contacts",
+        "schemaName": "public",
+        "x": 624.8818359375,
+        "y": 698
+      }
+    ],
+    "tableGroupCollapseStates": [],
+    "stickyNoteLayouts": [],
+    "referencePaths": [
+      {
+        "firstFieldNames": [
+          "connected_account_id"
+        ],
+        "firstTableName": "settings",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "connected_accounts",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "person_id"
+        ],
+        "firstTableName": "channel_identities",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "people",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "connected_account_id"
+        ],
+        "firstTableName": "channel_identities",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "connected_accounts",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": [
+          {
+            "x": 524.1891803510742,
+            "y": 1021.3329819361668
+          },
+          {
+            "x": 524.1891803510742,
+            "y": 400
+          }
+        ]
+      },
+      {
+        "firstFieldNames": [
+          "preferred_identity_id"
+        ],
+        "firstTableName": "people",
+        "firstSchemaName": "public",
+        "firstRelation": "1",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "channel_identities",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": [
+          {
+            "x": 441.68332311172594,
+            "y": 1372.7133284746287
+          },
+          {
+            "x": 441.68332311172594,
+            "y": 957.3329819361668
+          }
+        ]
+      },
+      {
+        "firstFieldNames": [
+          "connected_account_id"
+        ],
+        "firstTableName": "conversations",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "connected_accounts",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "channel_identity_id"
+        ],
+        "firstTableName": "conversations",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "channel_identities",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "conversation_id"
+        ],
+        "firstTableName": "conversation_participants",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "conversations",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "channel_identity_id"
+        ],
+        "firstTableName": "conversation_participants",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "channel_identities",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "conversation_id"
+        ],
+        "firstTableName": "messages",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "conversations",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "sender_participant_id"
+        ],
+        "firstTableName": "messages",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "conversation_participants",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "person_low_id"
+        ],
+        "firstTableName": "merge_proposals",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "people",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "person_high_id"
+        ],
+        "firstTableName": "merge_proposals",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "people",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "connected_account_id"
+        ],
+        "firstTableName": "sync_states",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "connected_accounts",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      },
+      {
+        "firstFieldNames": [
+          "conversation_id"
+        ],
+        "firstTableName": "sync_states",
+        "firstSchemaName": "public",
+        "firstRelation": "*",
+        "secondFieldNames": [
+          "id"
+        ],
+        "secondTableName": "conversations",
+        "secondSchemaName": "public",
+        "secondRelation": "1",
+        "checkPoints": []
+      }
+    ]
+  },
+  "views": {}
+}

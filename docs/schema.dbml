@@ -1,0 +1,403 @@
+// Local Messenger Hub — схема БД v1
+// Вставьте целиком в https://dbdiagram.io/d
+//
+// Эталон схемы — database.md (DDL, CHECK, частичные индексы).
+// DBML не поддерживает CHECK и частичные индексы, поэтому они описаны в Note.
+// Время во всех таблицах — INTEGER, Unix ms UTC.
+// Наименование: таблицы, поля и индексы — snake_case. Значения enum (статусы,
+// типы) — как есть, это литералы хранимых данных, а не идентификаторы схемы.
+
+Project LocalMessengerHub {
+  database_type: 'SQLite'
+  Note: '''
+  Локальная БД приложения Local Messenger Hub (v1).
+  Полное описание: database.md
+  '''
+}
+
+// ---------- Перечисления (в SQLite хранятся как TEXT + CHECK) ----------
+
+Enum account_status {
+  Connected
+  Disconnected
+  Error
+}
+
+Enum history_depth {
+  none
+  "7d"
+  "30d"
+  "90d"
+  all
+}
+
+Enum settings_scope {
+  global
+  account
+}
+
+Enum conversation_type {
+  Personal
+  Group
+  Broadcast
+  Other
+}
+
+Enum conversation_status {
+  Pending [note: 'Появился после подключения, ждёт решения. Только метаданные']
+  Added [note: 'Добавлен пользователем, сообщения синхронизируются']
+  Ignored [note: 'Проигнорирован или убран из приложения']
+}
+
+Enum message_direction {
+  Incoming
+  Outgoing
+}
+
+Enum message_status {
+  Received [note: 'Входящее']
+  Pending [note: 'Исходящее, ожидает отправки']
+  Sent [note: 'Исходящее, подтверждено сервисом']
+  Failed [note: 'Исходящее, отправка не удалась']
+}
+
+Enum merge_confidence {
+  HIGH
+  MEDIUM
+}
+
+Enum proposal_status {
+  Pending
+  Accepted
+  Rejected
+}
+
+Enum relation_operation {
+  Merge
+  AutoMerge
+  Split
+  ContactAdded
+  ContactRemoved
+  ProposalAccepted
+  ProposalRejected
+  PersonCreated
+  PersonDeleted
+}
+
+Enum sync_kind {
+  updates [note: 'Курсор обновлений аккаунта']
+  history [note: 'Первичная загрузка истории диалога']
+}
+
+Enum sync_status {
+  Idle
+  Running
+  Done
+  Error
+}
+
+// ---------- Профиль и настройки ----------
+
+Table user_profiles [headercolor: #7F8C8D] {
+  id integer [pk, note: 'Всегда 1: в v1 один профиль']
+  name text [not null]
+  password_hash blob [not null, note: 'Хэш текущего пароля. Пустой пароль — тоже пароль: хэш пустой строки']
+  password_salt blob [not null]
+  kdf_params text [not null, note: 'JSON: алгоритм и параметры KDF']
+  created_at integer [not null]
+  updated_at integer [not null]
+
+  Note: '''
+  CHECK (id = 1)
+  Пароль есть всегда. "Отключение" пароля — это установка пустого пароля:
+  password_hash становится хэшем пустой строки, вход проходит без реальной проверки.
+  '''
+}
+
+Table settings [headercolor: #7F8C8D] {
+  id integer [pk]
+  scope settings_scope [not null]
+  connected_account_id integer [note: 'Только для scope = account']
+  key text [not null, note: 'ui.theme, sync.intervalMinutes, ...']
+  value text [not null, note: 'JSON']
+  updated_at integer [not null]
+
+  Note: '''
+  UNIQUE (key) WHERE scope = 'global'
+  UNIQUE (connected_account_id, key) WHERE scope = 'account'
+  CHECK: connected_account_id заполнен тогда и только тогда, когда scope = 'account'
+  '''
+}
+
+// ---------- Аккаунты ----------
+
+Table connected_accounts [headercolor: #2980B9] {
+  id integer [pk]
+  channel_type text [not null, note: 'Код сервиса: telegram, vk, whatsapp, email. Только [a-z0-9-], 1–32 символа']
+  account_id text [note: 'ID аккаунта в сервисе. NULL для сервисов без отдельного ID аккаунта (например, Email)']
+  email text [note: 'Обязателен, когда account_id = NULL. Идентифицирует аккаунт вместо него (например, Email)']
+  display_name text [not null]
+  status account_status [not null]
+  last_error text [note: 'Без секретов']
+  secret_ref text [note: 'Ссылка на секрет в хранилище Windows. NULL только при Disconnected']
+  initial_history_depth history_depth [not null]
+  sync_enabled integer [not null, default: 1, note: 'bool']
+  connected_at integer [not null]
+  last_sync_at integer
+
+  indexes {
+    (channel_type, account_id) [unique, name: 'ux_connected_accounts_channel_account', note: 'WHERE account_id IS NOT NULL']
+    (channel_type, email) [unique, name: 'ux_connected_accounts_channel_email', note: 'WHERE account_id IS NULL']
+  }
+
+  Note: '''
+  Отключение с сохранением данных: status = Disconnected, secret_ref = NULL, строка остаётся.
+  Удаление строки удаляет все данные аккаунта каскадом.
+  CHECK: account_id IS NOT NULL OR email IS NOT NULL — ровно один из них идентифицирует аккаунт.
+  Оба индекса частичные: SQLite считает каждый NULL уникальным, поэтому обычный
+  UNIQUE (channel_type, account_id) не ловил бы дубли при account_id = NULL — WHERE закрывает это.
+  '''
+}
+
+// ---------- Собеседники ----------
+
+Table person [headercolor: #27AE60] {
+  id integer [pk]
+  first_name text
+  last_name text
+  display_name text [not null]
+  search_name text [not null, note: 'Нижний регистр средствами .NET, ё → е. NOCASE не работает с кириллицей']
+  phone text [note: 'E.164']
+  email text [note: 'Нижний регистр']
+  "note" text
+  preferred_channel_contact_id integer [note: 'Предпочтительный канал отправки. Должен принадлежать этому же person (проверка в приложении)']
+  created_at integer [not null]
+  updated_at integer [not null]
+
+  indexes {
+    search_name [name: 'ix_person_search_name']
+    phone [name: 'ix_person_phone', note: 'WHERE phone IS NOT NULL']
+    email [name: 'ix_person_email', note: 'WHERE email IS NOT NULL']
+  }
+}
+
+Table channel_contacts [headercolor: #27AE60] {
+  id integer [pk]
+  person_id integer [not null]
+  connected_account_id integer [not null]
+  external_id text [not null, note: 'ID собеседника в сервисе']
+  username text [note: 'Нижний регистр']
+  display_name text
+  phone text
+  email text
+  created_at integer [not null]
+
+  indexes {
+    (connected_account_id, external_id) [unique, name: 'ux_channel_contacts_account_external']
+    person_id [name: 'ix_channel_contacts_person']
+    username [name: 'ix_channel_contacts_username', note: 'WHERE username IS NOT NULL']
+    phone [name: 'ix_channel_contacts_phone', note: 'WHERE phone IS NOT NULL']
+    email [name: 'ix_channel_contacts_email', note: 'WHERE email IS NOT NULL']
+  }
+
+  Note: 'channel_type не хранится — берётся из connected_accounts'
+}
+
+// ---------- Диалоги и сообщения ----------
+
+Table conversations [headercolor: #E67E22] {
+  id integer [pk]
+  connected_account_id integer [not null]
+  external_id text [not null]
+  type conversation_type [not null]
+  status conversation_status [not null]
+  title text
+  channel_contact_id integer [note: 'Собеседник личного диалога']
+  last_message_at integer [note: 'Денормализация: MAX(messages.sent_at)']
+  last_incoming_at integer [note: 'Денормализация: для канала отправки по умолчанию']
+  last_message_preview text [note: 'До 200 символов']
+  unread_count integer [not null, default: 0]
+  added_at integer
+  created_at integer [not null]
+  updated_at integer [not null]
+
+  indexes {
+    (connected_account_id, external_id) [unique, name: 'ux_conversations_account_external']
+    channel_contact_id [name: 'ix_conversations_channel_contact', note: 'WHERE channel_contact_id IS NOT NULL']
+    (status, last_message_at) [name: 'ix_conversations_status_last_message', note: 'last_message_at DESC']
+  }
+
+  Note: '''
+  CHECK: Personal + Added → channel_contact_id IS NOT NULL
+  CHECK: не Personal → channel_contact_id IS NULL
+  Для Pending хранятся только метаданные, сообщения не сохраняются.
+  '''
+}
+
+Table conversation_participants [headercolor: #E67E22] {
+  id integer [pk]
+  conversation_id integer [not null]
+  external_id text [not null]
+  display_name text
+  channel_contact_id integer [note: 'Только если участник добавлен как собеседник']
+
+  indexes {
+    (conversation_id, external_id) [unique, name: 'ux_conversation_participants_conversation_external']
+    channel_contact_id [name: 'ix_conversation_participants_channel_contact', note: 'WHERE channel_contact_id IS NOT NULL']
+  }
+
+  Note: 'Участники групп и broadcast. Собеседниками (person) не являются'
+}
+
+Table messages [headercolor: #C0392B] {
+  id integer [pk]
+  conversation_id integer [not null]
+  external_id text [note: 'NULL у исходящего до подтверждения']
+  client_message_id text [note: 'Идемпотентность повторной отправки']
+  channel_type text [not null, note: 'Денормализация для поиска и API']
+  direction message_direction [not null]
+  sender_participant_id integer [note: 'Автор в групповом диалоге']
+  text text [not null]
+  attachments_info text [note: 'JSON: только типы вложений, без содержимого']
+  sent_at integer [not null, note: 'Время сервиса, ключ сортировки']
+  received_at integer [not null]
+  edited_at integer
+  remote_deleted_at integer
+  status message_status [not null]
+  is_read integer [not null, default: 0, note: 'bool']
+  last_error text
+  retry_count integer [not null, default: 0]
+  next_retry_at integer
+
+  indexes {
+    (conversation_id, sent_at, id) [name: 'ix_messages_conversation_sent_at', note: 'sent_at DESC, id DESC — лента']
+    (conversation_id, external_id) [unique, name: 'ux_messages_conversation_external', note: 'WHERE external_id IS NOT NULL']
+    client_message_id [unique, name: 'ux_messages_client_message_id', note: 'WHERE client_message_id IS NOT NULL']
+    next_retry_at [name: 'ix_messages_send_queue', note: "WHERE status = 'Pending'"]
+    conversation_id [name: 'ix_messages_unread', note: 'WHERE is_read = 0']
+  }
+
+  Note: '''
+  CHECK: Incoming ↔ Received; Outgoing ↔ Pending | Sent | Failed
+  CHECK: Outgoing → is_read = 1
+  CHECK: Sent → external_id IS NOT NULL
+  person_id намеренно не хранится: иначе merge/split потребовали бы массового UPDATE.
+  '''
+}
+
+// ---------- Объединение и журнал ----------
+
+Table merge_proposals [headercolor: #8E44AD] {
+  id integer [pk]
+  person_low_id integer [not null, note: 'Меньший id пары']
+  person_high_id integer [not null, note: 'Больший id пары']
+  confidence merge_confidence [not null]
+  reasons text [not null, note: 'JSON: сработавшие правила']
+  status proposal_status [not null]
+  created_at integer [not null]
+  resolved_at integer
+
+  indexes {
+    (person_low_id, person_high_id) [unique, name: 'ux_merge_proposals_pair']
+    created_at [name: 'ix_merge_proposals_pending', note: "DESC, WHERE status = 'Pending'"]
+    person_high_id [name: 'ix_merge_proposals_high']
+  }
+
+  Note: '''
+  CHECK (person_low_id < person_high_id)
+  CHECK: resolved_at IS NULL тогда и только тогда, когда status = Pending
+  Rejected блокирует повторное предложение пары.
+  '''
+}
+
+Table relation_change_logs [headercolor: #8E44AD] {
+  id integer [pk]
+  operation relation_operation [not null]
+  person_id integer [note: 'Без FK: запись переживает удаление']
+  related_person_id integer
+  channel_contact_id integer
+  proposal_id integer
+  snapshot text [note: 'JSON: состояние связей до операции']
+  created_at integer [not null]
+
+  indexes {
+    (person_id, created_at) [name: 'ix_relation_change_logs_person', note: 'created_at DESC']
+    related_person_id [name: 'ix_relation_change_logs_related_person', note: 'WHERE related_person_id IS NOT NULL']
+  }
+
+  Note: 'Append-only. Внешних ключей нет намеренно'
+}
+
+// ---------- Синхронизация ----------
+
+Table sync_states [headercolor: #16A085] {
+  id integer [pk]
+  connected_account_id integer [not null]
+  conversation_id integer [note: 'NULL для kind = updates']
+  kind sync_kind [not null]
+  status sync_status [not null]
+  cursor text [note: 'Непрозрачное значение адаптера']
+  history_from integer [note: 'Граница первичной загрузки; NULL = вся история']
+  last_success_at integer
+  last_error_at integer
+  last_error text
+  retry_count integer [not null, default: 0]
+  next_retry_at integer
+  updated_at integer [not null]
+
+  indexes {
+    connected_account_id [unique, name: 'ux_sync_states_account_updates', note: "WHERE kind = 'updates'"]
+    conversation_id [unique, name: 'ux_sync_states_conversation_history', note: "WHERE kind = 'history'"]
+    next_retry_at [name: 'ix_sync_states_next_retry', note: 'WHERE next_retry_at IS NOT NULL']
+  }
+
+  Note: 'CHECK: updates → conversation_id IS NULL; history → conversation_id IS NOT NULL'
+}
+
+// ---------- Связи ----------
+
+Ref: settings.connected_account_id > connected_accounts.id [delete: cascade]
+
+Ref: channel_contacts.person_id > person.id [delete: cascade]
+Ref: channel_contacts.connected_account_id > connected_accounts.id [delete: cascade]
+Ref: person.preferred_channel_contact_id - channel_contacts.id [delete: set null]
+
+Ref: conversations.connected_account_id > connected_accounts.id [delete: cascade]
+Ref: conversations.channel_contact_id > channel_contacts.id [delete: set null]
+
+Ref: conversation_participants.conversation_id > conversations.id [delete: cascade]
+Ref: conversation_participants.channel_contact_id > channel_contacts.id [delete: set null]
+
+Ref: messages.conversation_id > conversations.id [delete: cascade]
+Ref: messages.sender_participant_id > conversation_participants.id [delete: set null]
+
+Ref: merge_proposals.person_low_id > person.id [delete: cascade]
+Ref: merge_proposals.person_high_id > person.id [delete: cascade]
+
+Ref: sync_states.connected_account_id > connected_accounts.id [delete: cascade]
+Ref: sync_states.conversation_id > conversations.id [delete: cascade]
+
+// ---------- Группы на диаграмме ----------
+
+TableGroup Profile {
+  user_profiles
+  settings
+}
+
+TableGroup Accounts {
+  connected_accounts
+  sync_states
+}
+
+TableGroup Contacts {
+  person
+  channel_contacts
+  merge_proposals
+  relation_change_logs
+}
+
+TableGroup Dialogs {
+  conversations
+  conversation_participants
+  messages
+}

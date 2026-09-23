@@ -2,9 +2,19 @@ namespace MessageHub.Core.Entities;
 
 public class UserProfile
 {
+  /// <summary>
+  /// Unique identifier of the local profile.
+  /// </summary>
   public Guid Id { get; private set; }
+
+  /// <summary>
+  /// The user's own display name for the profile.
+  /// </summary>
   public string Username { get; private set; }
 
+  /// <summary>
+  /// Hash of the current password. Already hashed by the caller — this entity never sees a raw password.
+  /// </summary>
   public string PasswordHash
   {
     get;
@@ -16,6 +26,9 @@ public class UserProfile
     }
   } = null!;
 
+  /// <summary>
+  /// Question shown to reset a forgotten password.
+  /// </summary>
   public string SecurityQuestion
   {
     get;
@@ -27,6 +40,9 @@ public class UserProfile
     }
   } = null!;
 
+  /// <summary>
+  /// Hash of the answer to <see cref="SecurityQuestion"/>. Already hashed by the caller.
+  /// </summary>
   public string SecurityAnswerHash
   {
     get;
