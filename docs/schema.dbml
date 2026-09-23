@@ -138,8 +138,6 @@ Table connected_accounts [headercolor: #2980B9] {
   email text [note: 'Обязателен, когда account_id = NULL. Идентифицирует аккаунт вместо него (например, Email)']
   display_name text [not null]
   status account_status [not null]
-  last_error text [note: 'Без секретов']
-  secret_ref text [note: 'Ссылка на секрет в хранилище Windows. NULL только при Disconnected']
   initial_history_depth history_depth [not null]
   sync_enabled integer [not null, default: 1, note: 'bool']
   connected_at integer [not null]
@@ -151,7 +149,8 @@ Table connected_accounts [headercolor: #2980B9] {
   }
 
   Note: '''
-  Отключение с сохранением данных: status = Disconnected, secret_ref = NULL, строка остаётся.
+  Секрет (токен/пароль) не персистируется — хранится только в памяти процесса.
+  Отключение с сохранением данных: status = Disconnected, строка остаётся.
   Удаление строки удаляет все данные аккаунта каскадом.
   CHECK: account_id IS NOT NULL OR email IS NOT NULL — ровно один из них идентифицирует аккаунт.
   Оба индекса частичные: SQLite считает каждый NULL уникальным, поэтому обычный
@@ -340,7 +339,6 @@ Table sync_states [headercolor: #16A085] {
   history_from integer [note: 'Граница первичной загрузки; NULL = вся история']
   last_success_at integer
   last_error_at integer
-  last_error text
   retry_count integer [not null, default: 0]
   next_retry_at integer
   updated_at integer [not null]
