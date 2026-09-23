@@ -1,4 +1,4 @@
-namespace MessageHub.Core.Enums;
+namespace MessageHub.Core.Entities.ConnectedAccount.Enums;
 
 // TODO: заменить на VO (или что-то с generic-параметром под настройки канала).
 // Подключение у каждого сервиса устроено по-разному: где-то это токен через обычный API

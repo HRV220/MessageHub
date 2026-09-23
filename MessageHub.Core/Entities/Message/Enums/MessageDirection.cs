@@ -1,4 +1,4 @@
-namespace MessageHub.Core.Enums;
+namespace MessageHub.Core.Entities.Message.Enums;
 
 public enum MessageDirection
 {

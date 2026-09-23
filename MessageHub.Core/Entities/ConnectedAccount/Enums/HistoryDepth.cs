@@ -1,4 +1,4 @@
-namespace MessageHub.Core.Enums;
+namespace MessageHub.Core.Entities.ConnectedAccount.Enums;
 
 /// <summary>
 /// How much history to load when a channel is first connected (ФТ-205).

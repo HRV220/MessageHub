@@ -1,5 +1,5 @@
-using MessageHub.Core.Entities;
-using MessageHub.Core.Enums;
+using MessageHub.Core.Entities.Message;
+using MessageHub.Core.Entities.Message.Enums;
 
 namespace MessageHub.Core.Tests.Entities;
 

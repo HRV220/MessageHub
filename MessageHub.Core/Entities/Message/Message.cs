@@ -1,6 +1,6 @@
-using MessageHub.Core.Enums;
+using MessageHub.Core.Entities.Message.Enums;
 
-namespace MessageHub.Core.Entities;
+namespace MessageHub.Core.Entities.Message;
 
 public class Message
 {

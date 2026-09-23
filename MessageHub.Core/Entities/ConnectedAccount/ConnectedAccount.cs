@@ -1,6 +1,7 @@
-using MessageHub.Core.Enums;
+using MessageHub.Core.Entities;
+using MessageHub.Core.Entities.ConnectedAccount.Enums;
 
-namespace MessageHub.Core.Entities;
+namespace MessageHub.Core.Entities.ConnectedAccount;
 
 public class ConnectedAccount
 {

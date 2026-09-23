@@ -1,3 +1,5 @@
+using ConnectedAccountEntity = MessageHub.Core.Entities.ConnectedAccount.ConnectedAccount;
+
 namespace MessageHub.Core.Entities;
 
 /// <summary>
@@ -33,7 +35,7 @@ public class ChannelContact
   /// The account this identity is seen through. Same story as <see cref="Person"/>: only
   /// <see cref="ConnectedAccountId"/> is known at creation time, EF Core fixes up the reference.
   /// </summary>
-  public ConnectedAccount ConnectedAccount { get; private set; } = null!;
+  public ConnectedAccountEntity ConnectedAccount { get; private set; } = null!;
 
   /// <summary>
   /// Identifier of this contact in the external service.
