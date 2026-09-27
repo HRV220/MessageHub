@@ -24,16 +24,16 @@ Enum account_status {
 }
 
 Enum history_depth {
-  none
-  "7d"
-  "30d"
-  "90d"
-  all
+  None
+  SevenDays
+  ThirtyDays
+  NinetyDays
+  All
 }
 
 Enum settings_scope {
-  global
-  account
+  Global
+  Account
 }
 
 Enum conversation_type {
@@ -62,8 +62,8 @@ Enum message_status {
 }
 
 Enum merge_confidence {
-  HIGH
-  MEDIUM
+  High
+  Medium
 }
 
 Enum proposal_status {
@@ -85,8 +85,8 @@ Enum relation_operation {
 }
 
 Enum sync_kind {
-  updates [note: 'Курсор обновлений аккаунта']
-  history [note: 'Первичная загрузка истории диалога']
+  Updates [note: 'Курсор обновлений аккаунта']
+  History [note: 'Первичная загрузка истории диалога']
 }
 
 Enum sync_status {
@@ -100,7 +100,7 @@ Enum sync_status {
 
 Table user_profiles [headercolor: #7F8C8D] {
   id integer [pk, note: 'Всегда 1: в v1 один профиль']
-  name text [not null]
+  username text [not null]
   password_hash blob [not null, note: 'Хэш текущего пароля. Пустой пароль — тоже пароль: хэш пустой строки']
   password_salt blob [not null]
   kdf_params text [not null, note: 'JSON: алгоритм и параметры KDF']
@@ -117,15 +117,15 @@ Table user_profiles [headercolor: #7F8C8D] {
 Table settings [headercolor: #7F8C8D] {
   id integer [pk]
   scope settings_scope [not null]
-  connected_account_id integer [note: 'Только для scope = account']
+  connected_account_id integer [note: 'Только для scope = Account']
   key text [not null, note: 'ui.theme, sync.intervalMinutes, ...']
   value text [not null, note: 'JSON']
   updated_at integer [not null]
 
   Note: '''
-  UNIQUE (key) WHERE scope = 'global'
-  UNIQUE (connected_account_id, key) WHERE scope = 'account'
-  CHECK: connected_account_id заполнен тогда и только тогда, когда scope = 'account'
+  UNIQUE (key) WHERE scope = 'Global'
+  UNIQUE (connected_account_id, key) WHERE scope = 'Account'
+  CHECK: connected_account_id заполнен тогда и только тогда, когда scope = 'Account'
   '''
 }
 
@@ -332,7 +332,7 @@ Table relation_change_logs [headercolor: #8E44AD] {
 Table sync_states [headercolor: #16A085] {
   id integer [pk]
   connected_account_id integer [not null]
-  conversation_id integer [note: 'NULL для kind = updates']
+  conversation_id integer [note: 'NULL для kind = Updates']
   kind sync_kind [not null]
   status sync_status [not null]
   cursor text [note: 'Непрозрачное значение адаптера']
@@ -344,12 +344,12 @@ Table sync_states [headercolor: #16A085] {
   updated_at integer [not null]
 
   indexes {
-    connected_account_id [unique, name: 'ux_sync_states_account_updates', note: "WHERE kind = 'updates'"]
-    conversation_id [unique, name: 'ux_sync_states_conversation_history', note: "WHERE kind = 'history'"]
+    connected_account_id [unique, name: 'ux_sync_states_account_updates', note: "WHERE kind = 'Updates'"]
+    conversation_id [unique, name: 'ux_sync_states_conversation_history', note: "WHERE kind = 'History'"]
     next_retry_at [name: 'ix_sync_states_next_retry', note: 'WHERE next_retry_at IS NOT NULL']
   }
 
-  Note: 'CHECK: updates → conversation_id IS NULL; history → conversation_id IS NOT NULL'
+  Note: 'CHECK: Updates → conversation_id IS NULL; History → conversation_id IS NOT NULL'
 }
 
 // ---------- Связи ----------

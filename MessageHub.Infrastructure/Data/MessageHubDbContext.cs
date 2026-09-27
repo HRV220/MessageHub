@@ -10,7 +10,7 @@ using MessageHub.Core.Entities.Settings;
 using MessageHub.Core.Entities.SyncState;
 using MessageHub.Infrastructure.Data.Interceptors;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace MessageHub.Infrastructure.Data;
 
@@ -26,6 +26,7 @@ public class MessageHubDbContext : DbContext
   public DbSet<ConversationParticipant> ConversationParticipants { get; set; }
   public DbSet<Person> Persons { get; set; }
   public DbSet<UserProfile> UserProfiles { get; set; }
+  public DbSet<Settings> Settings { get; set; }
 
   public MessageHubDbContext(DbContextOptions<MessageHubDbContext> options) : base(options)
   {
@@ -43,21 +44,6 @@ public class MessageHubDbContext : DbContext
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
-
-    foreach (var entity in modelBuilder.Model.GetEntityTypes())
-    {
-      if (entity.GetTableName() is string tableName)
-      {
-        entity.SetTableName(ToSnakeCase(tableName));
-      }
-      foreach (var property in entity.GetProperties())
-      {
-        if (property.GetColumnName() is string columnName)
-        {
-          property.SetColumnName(ToSnakeCase(columnName));
-        }
-      }
-    }
     modelBuilder.Entity<ConnectedAccount>(b =>
     {
       b.Property(e => e.ChannelType).HasConversion(c => c.Code, s => ChannelType.From(s));
@@ -282,6 +268,8 @@ public class MessageHubDbContext : DbContext
     });
     modelBuilder.Entity<Person>(e =>
     {
+      e.ToTable("person");
+
       e.HasOne<ChannelContact>()
         .WithOne()
         .HasForeignKey<Person>(p => p.PreferredChannelContactId)
@@ -303,7 +291,42 @@ public class MessageHubDbContext : DbContext
       // Всегда одна строка с id = 1 (8.3 ТЗ) — не автоинкремент, приложение задаёт значение само.
       e.Property(p => p.Id).ValueGeneratedNever();
     });
+
+    // Идёт последним: снимает snake_case-имена и Unix-ms-конвертер дат с полностью
+    // собранной модели — раньше часть свойств/сущностей (например Settings, ChannelType)
+    // ещё не существовала в modelBuilder.Model на момент прохода.
+    foreach (var entity in modelBuilder.Model.GetEntityTypes())
+    {
+      if (entity.GetTableName() is string tableName)
+      {
+        entity.SetTableName(ToSnakeCase(tableName));
+      }
+      foreach (var property in entity.GetProperties())
+      {
+        if (property.GetColumnName() is string columnName)
+        {
+          property.SetColumnName(ToSnakeCase(columnName));
+        }
+
+        if (property.ClrType == typeof(DateTime))
+        {
+          property.SetValueConverter(DateTimeToUnixMsConverter);
+        }
+        else if (property.ClrType == typeof(DateTime?))
+        {
+          property.SetValueConverter(NullableDateTimeToUnixMsConverter);
+        }
+      }
+    }
   }
+
+  private static readonly ValueConverter<DateTime, long> DateTimeToUnixMsConverter = new(
+    v => new DateTimeOffset(DateTime.SpecifyKind(v, DateTimeKind.Utc)).ToUnixTimeMilliseconds(),
+    v => DateTimeOffset.FromUnixTimeMilliseconds(v).UtcDateTime);
+
+  private static readonly ValueConverter<DateTime?, long?> NullableDateTimeToUnixMsConverter = new(
+    v => v.HasValue ? new DateTimeOffset(DateTime.SpecifyKind(v.Value, DateTimeKind.Utc)).ToUnixTimeMilliseconds() : null,
+    v => v.HasValue ? DateTimeOffset.FromUnixTimeMilliseconds(v.Value).UtcDateTime : null);
 
   private static string ToSnakeCase(string input)
   {
