@@ -1,7 +1,7 @@
 // Local Messenger Hub — схема БД v1
 // Вставьте целиком в https://dbdiagram.io/d
 //
-// Эталон схемы — database.md (DDL, CHECK, частичные индексы).
+// Эталон схемы — этот файл и раздел 8.3 ТЗ (изменяются только вместе, см. TZ_Local_Messenger_Hub.md).
 // DBML не поддерживает CHECK и частичные индексы, поэтому они описаны в Note.
 // Время во всех таблицах — INTEGER, Unix ms UTC.
 // Наименование: таблицы, поля и индексы — snake_case. Значения enum (статусы,
@@ -11,7 +11,7 @@ Project LocalMessengerHub {
   database_type: 'SQLite'
   Note: '''
   Локальная БД приложения Local Messenger Hub (v1).
-  Полное описание: database.md
+  Полное описание: раздел 8.3 TZ_Local_Messenger_Hub.md
   '''
 }
 

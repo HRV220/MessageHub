@@ -11,17 +11,17 @@ public class SyncState
   /// <summary>
   /// Unique identifier of this sync state.
   /// </summary>
-  public Guid Id { get; private set; }
+  public int Id { get; private set; }
 
   /// <summary>
   /// The connected account this sync job belongs to.
   /// </summary>
-  public Guid ConnectedAccountId { get; private set; }
+  public int ConnectedAccountId { get; private set; }
 
   /// <summary>
   /// The conversation this job loads history for. Null when <see cref="Kind"/> is <see cref="SyncKind.Updates"/>.
   /// </summary>
-  public Guid? ConversationId { get; private set; }
+  public int? ConversationId { get; private set; }
 
   /// <summary>
   /// Whether this tracks the account-level updates cursor or a conversation's initial history load.
@@ -68,7 +68,7 @@ public class SyncState
   /// </summary>
   public DateTime UpdatedAt { get; private set; }
 
-  private SyncState(Guid id, Guid connectedAccountId, Guid? conversationId, SyncKind kind, DateTime? historyFrom)
+  private SyncState(int id, int connectedAccountId, int? conversationId, SyncKind kind, DateTime? historyFrom)
   {
     Id = id;
     ConnectedAccountId = connectedAccountId;
@@ -88,18 +88,18 @@ public class SyncState
   /// <exception cref="ArgumentException">
   /// <paramref name="connectedAccountId"/> is empty, or <paramref name="conversationId"/> is inconsistent with <paramref name="kind"/>.
   /// </exception>
-  public static SyncState Create(Guid connectedAccountId, SyncKind kind, Guid? conversationId = null, DateTime? historyFrom = null)
+  public static SyncState Create(int connectedAccountId, SyncKind kind, int? conversationId = null, DateTime? historyFrom = null)
   {
-    if (connectedAccountId == Guid.Empty)
+    if (connectedAccountId < 0)
       throw new ArgumentException("ConnectedAccountId must not be empty.", nameof(connectedAccountId));
 
-    if (kind == SyncKind.History && (conversationId is null || conversationId == Guid.Empty))
+    if (kind == SyncKind.History && (conversationId is null || conversationId < 0))
       throw new ArgumentException("ConversationId is required for history sync.", nameof(conversationId));
 
     if (kind == SyncKind.Updates && conversationId is not null)
       throw new ArgumentException("ConversationId must be null for updates sync.", nameof(conversationId));
 
-    return new SyncState(Guid.NewGuid(), connectedAccountId, conversationId, kind, historyFrom);
+    return new SyncState(default, connectedAccountId, conversationId, kind, historyFrom);
   }
 
   /// <summary>

@@ -7,7 +7,7 @@
 .NET 10 (SDK 10.0.201, preview), C# 14, ASP.NET Core Minimal API.
 
 Слоистая структура, решение — `MessageHub.slnx`:
-- `MessageHub.Core` — доменные сущности (DDD-стиль): `Message`, `Person`, `UserProfile`, `ChannelContact`, `ConnectedAccount` + `Enums/`. Единственный слой с реальной логикой на данный момент.
+- `MessageHub.Core` — доменные сущности (DDD-стиль): `Message`, `Person`, `UserProfile`, `ChannelContact`, `ConnectedAccount`, `Settings` + `Enums/`, `ValueObjects/`. Единственный слой с реальной логикой на данный момент.
 - `MessageHub.Infrastructure` — пока пустой стаб (`Class1.cs`), предполагается EF Core / persistence.
 - `MessageHub.Channels` — пока пустой стаб, предполагаются адаптеры каналов (Telegram/WhatsApp/…).
 - `MessageHub.API` — ASP.NET Core хост; пока не связан с `Core` (нет `ProjectReference`), содержит только шаблонный `WeatherForecast`.
@@ -32,6 +32,7 @@
 - XML doc-комментарии (`///`) — на каждом публичном члене, включая `<exception>`; часто со ссылкой на пункт ТЗ (`US-08`, `9.6 ТЗ`, `ФТ-504`, `БЗ-02`) — при переносе логики из ТЗ сохранять такие ссылки.
 - `Nullable` включён везде — не добавлять `#nullable disable`.
 - Guid Id — `Guid.NewGuid()` внутри фабрики, не передаётся снаружи.
+- Value objects (`record`, равенство по значению, приватный конструктор + статическая фабрика вроде `From(...)`, см. `ConnectedAccount/ValueObjects/ChannelType.cs`) — класть в `ValueObjects/` рядом с сущностью, к которой они логически привязаны (например `ConnectedAccount/ValueObjects/ChannelType.cs`). VO, не привязанный к одной конкретной сущности (используется в нескольких, например будущие `PhoneNumber`/`EmailAddress`/`ChannelCapabilities`), — в общую `MessageHub.Core/Entities/ValueObjects/`.
 
 ## Тесты
 

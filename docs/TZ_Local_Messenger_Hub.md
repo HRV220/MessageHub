@@ -568,191 +568,27 @@ stateDiagram-v2
 
 ### 8.2. ER-диаграмма
 
-(Изменять только с разделом 8.3)
+Точная и единственная спецификация схемы (типы колонок, индексы, включая частичные, FK/`Ref`, значения enum как литералы данных) — [`docs/schema.dbml`](./schema.dbml). Раздел 8.3 ниже — только обзор назначения таблиц, а не копия структуры, и правится независимо от dbml.
 
 [Схема базы данных](./schema.dbml)
 
-### 8.3. Таблицы
+### 8.3. Таблицы (обзор)
 
-(Изменять только с файлом schema.dbml)
+Ниже — только назначение каждой таблицы. Колонки, индексы и связи смотреть в `schema.dbml`.
 
-#### user_profiles
-
-| Колонка                | Тип         | Null | Описание                                        |
-| ------------------------ | ----------- | ---- | ------------------------------------------------ |
-| id                       | INTEGER PK  | нет  |                                                  |
-| name                     | TEXT        | нет  | Имя пользователя                                 |
-| password_hash            | BLOB        | нет  | Хэш текущего пароля. Пустой пароль — тоже пароль |
-| password_salt            | BLOB        | нет  | Соль                                             |
-| kdf_params               | TEXT (JSON) | нет  | Алгоритм и параметры KDF                         |
-| created_at, updated_at   | TEXT (UTC)  | нет  |                                                  |
-
-#### settings
-
-| Колонка             | Тип         | Null | Описание             |
-| -------------------- | ----------- | ---- | -------------------- |
-| id                   | INTEGER PK  | нет  |                      |
-| scope                | TEXT        | нет  | `global` / `account` |
-| connected_account_id | INTEGER FK  | да   | Для `account`        |
-| key                  | TEXT        | нет  | Ключ настройки       |
-| value                | TEXT (JSON) | нет  | Значение             |
-| updated_at           | TEXT (UTC)  | нет  |                      |
-
-Индекс: `UNIQUE (scope, connected_account_id, key)`.
-
-#### connected_accounts
-
-| Колонка              | Тип            | Null | Описание                                                                   |
-| ---------------------- | -------------- | ---- | -------------------------------------------------------------------------- |
-| id                     | INTEGER PK     | нет  |                                                                            |
-| channel_type           | TEXT           | нет  | Код сервиса                                                                |
-| account_id             | TEXT           | да   | ID аккаунта в сервисе. NULL для сервисов без отдельного ID (например, Email) |
-| email                  | TEXT           | да   | Обязателен, когда `account_id` пуст. Идентифицирует аккаунт вместо него     |
-| display_name           | TEXT           | нет  | Отображаемое имя                                                           |
-| status                 | TEXT           | нет  | `Connected` / `Disconnected` / `Error`                                     |
-| initial_history_depth  | TEXT           | нет  | `none` / `7d` / `30d` / `90d` / `all`                                      |
-| sync_enabled           | INTEGER (bool) | нет  |                                                                            |
-| connected_at           | TEXT (UTC)     | нет  |                                                                            |
-| last_sync_at           | TEXT (UTC)     | да   |                                                                            |
-
-CHECK: `account_id IS NOT NULL OR email IS NOT NULL` — ровно один из них идентифицирует аккаунт.
-
-Индексы: `UNIQUE (channel_type, account_id) WHERE account_id IS NOT NULL`, `UNIQUE (channel_type, email) WHERE account_id IS NULL`. Оба частичные: обычный `UNIQUE (channel_type, account_id)` не ловил бы дубли при `account_id = NULL` (SQLite считает каждый NULL уникальным) — поэтому для каналов без ID аккаунта (Email) уникальность проверяется по `email`.
-
-#### person
-
-| Колонка               | Тип        | Null | Описание                                |
-| ----------------------- | ---------- | ---- | --------------------------------------- |
-| id                      | INTEGER PK | нет  |                                         |
-| first_name, last_name   | TEXT       | да   |                                         |
-| display_name            | TEXT       | нет  | Имя для отображения                     |
-| phone                   | TEXT       | да   | Нормализованный E.164                   |
-| email                   | TEXT       | да   | Нормализованный, нижний регистр         |
-| note                    | TEXT       | да   |                                         |
-| preferred_channel_contact_id | INTEGER FK | да   | Предпочтительный канал отправки (US-07) |
-| created_at, updated_at  | TEXT (UTC) | нет  |                                         |
-
-Индексы: `(display_name)`, `(phone)`, `(email)`.
-
-#### channel_contacts
-
-| Колонка              | Тип        | Null | Описание                  |
-| ----------------------| ---------- | ---- | ------------------------- |
-| id                    | INTEGER PK | нет  |                           |
-| person_id             | INTEGER FK | нет  | Владелец                  |
-| connected_account_id  | INTEGER FK | нет  | Через какой мой аккаунт виден |
-| external_id           | TEXT       | нет  | ID собеседника в сервисе  |
-| username              | TEXT       | да   |                           |
-| display_name          | TEXT       | да   | Имя в сервисе             |
-| phone, email          | TEXT       | да   | Если сервис отдаёт        |
-| created_at            | TEXT (UTC) | нет  |                           |
-
-Индексы: `UNIQUE (connected_account_id, external_id)`, `(person_id)`, `(username)`, `(phone)`, `(email)`.
-
-`channel_type` не хранится: он выводится из `connected_accounts`.
-
-#### conversations
-
-| Колонка              | Тип        | Null | Описание                                     |
-| ----------------------| ---------- | ---- | -------------------------------------------- |
-| id                    | INTEGER PK | нет  |                                              |
-| connected_account_id  | INTEGER FK | нет  |                                              |
-| external_id           | TEXT       | нет  | ID диалога в сервисе                         |
-| type                  | TEXT       | нет  | `Personal` / `Group` / `Broadcast` / `Other` |
-| status                | TEXT       | нет  | `Pending` / `Added` / `Ignored`              |
-| title                 | TEXT       | да   | Название (для групп и broadcast)             |
-| channel_contact_id    | INTEGER FK | да   | Собеседник личного диалога                   |
-| last_message_at       | TEXT (UTC) | да   |                                              |
-| last_message_preview  | TEXT       | да   | Короткий фрагмент для списка                 |
-| unread_count          | INTEGER    | нет  |                                              |
-| created_at            | TEXT (UTC) | нет  |                                              |
-
-Индексы: `UNIQUE (connected_account_id, external_id)`, `(channel_contact_id)`, `(status, last_message_at DESC)`.
-
-Для `Pending` хранятся только метаданные (название, дата, превью), сообщения не сохраняются.
-
-#### conversation_participants
-
-| Колонка             | Тип        | Null | Описание                                                  |
-| ---------------------| ---------- | ---- | --------------------------------------------------------- |
-| id                   | INTEGER PK | нет  |                                                           |
-| conversation_id      | INTEGER FK | нет  |                                                           |
-| external_id          | TEXT       | нет  | ID участника в сервисе                                    |
-| display_name         | TEXT       | да   |                                                           |
-| channel_contact_id   | INTEGER FK | да   | Заполняется, только если участник добавлен как собеседник |
-
-Индекс: `UNIQUE (conversation_id, external_id)`.
-
-#### messages
-
-| Колонка               | Тип            | Null | Описание                                                      |
-| ------------------------| -------------- | ---- | ------------------------------------------------------------- |
-| id                      | INTEGER PK     | нет  |                                                               |
-| conversation_id         | INTEGER FK     | нет  |                                                               |
-| external_id             | TEXT           | да   | Пусто у исходящего до подтверждения                           |
-| client_message_id       | TEXT           | да   | Идентификатор исходящего для идемпотентной повторной отправки |
-| channel_type            | TEXT           | нет  | Денормализация (НФТ-16)                                       |
-| direction               | TEXT           | нет  | `Incoming` / `Outgoing`                                       |
-| sender_participant_id   | INTEGER FK     | да   | Автор в групповом диалоге                                     |
-| text                    | TEXT           | нет  |                                                               |
-| sent_at                 | TEXT (UTC)     | нет  | Время по данным сервиса, ключ сортировки                      |
-| received_at             | TEXT (UTC)     | нет  | Время сохранения локально                                     |
-| status                  | TEXT           | нет  | `Received` / `Pending` / `Sent` / `Failed`                    |
-| is_read                 | INTEGER (bool) | нет  |                                                               |
-| last_error              | TEXT           | да   |                                                               |
-| retry_count             | INTEGER        | нет  |                                                               |
-
-Индексы:
-
-- `(conversation_id, sent_at DESC, id DESC)` — основная лента и единый чат;
-- `UNIQUE (conversation_id, external_id) WHERE external_id IS NOT NULL` — защита от дублей при синхронизации;
-- `UNIQUE (client_message_id) WHERE client_message_id IS NOT NULL`;
-- `(status) WHERE status IN ('Pending','Failed')` — очередь отправки;
-- `(conversation_id) WHERE is_read = 0` — подсчёт непрочитанных.
-
-#### merge_proposals
-
-| Колонка                | Тип         | Null | Описание                            |
-| ------------------------ | ----------- | ---- | ----------------------------------- |
-| id                       | INTEGER PK  | нет  |                                     |
-| person_low_id            | INTEGER FK  | нет  | Меньший id пары                     |
-| person_high_id           | INTEGER FK  | нет  | Больший id пары                     |
-| confidence               | TEXT        | нет  | `HIGH` / `MEDIUM`                   |
-| reasons                  | TEXT (JSON) | нет  | Причины совпадения                  |
-| status                   | TEXT        | нет  | `Pending` / `Accepted` / `Rejected` |
-| created_at, resolved_at  | TEXT (UTC)  |      |                                     |
-
-Индекс: `UNIQUE (person_low_id, person_high_id)`.
-
-#### relation_change_logs
-
-| Колонка            | Тип         | Null | Описание                                                                                                                          |
-| --------------------- | ----------- | ---- | --------------------------------------------------------------------------------------------------------------------------------- |
-| id                    | INTEGER PK  | нет  |                                                                                                                                   |
-| operation             | TEXT        | нет  | `Merge` / `Split` / `ContactAdded` / `ContactRemoved` / `ProposalAccepted` / `ProposalRejected` / `PersonDeleted` / `AutoMerge` |
-| person_id             | INTEGER     | да   | Затронутый собеседник (без FK: запись сохраняется после удаления)                                                                 |
-| related_person_id     | INTEGER     | да   | Второй участник операции                                                                                                          |
-| channel_contact_id    | INTEGER     | да   |                                                                                                                                   |
-| proposal_id           | INTEGER     | да   |                                                                                                                                   |
-| snapshot              | TEXT (JSON) | да   | Состояние связей до операции. Используется при split для подсказки исходного разбиения                                            |
-| created_at            | TEXT (UTC)  | нет  |                                                                                                                                   |
-
-Индекс: `(person_id, created_at DESC)`.
-
-#### sync_states
-
-| Колонка              | Тип        | Null | Описание                          |
-| ----------------------| ---------- | ---- | --------------------------------- |
-| id                    | INTEGER PK | нет  |                                   |
-| connected_account_id  | INTEGER FK | нет  |                                   |
-| conversation_id       | INTEGER FK | да   | Пусто для курсора уровня аккаунта |
-| cursor                | TEXT       | да   | Курсор/offset/UID сервиса         |
-| last_success_at       | TEXT (UTC) | да   |                                   |
-| last_error_at         | TEXT (UTC) | да   |                                   |
-| retry_count           | INTEGER    | нет  |                                   |
-| next_retry_at         | TEXT (UTC) | да   |                                   |
-
-Индекс: `UNIQUE (connected_account_id, conversation_id)`.
+| Таблица                    | Назначение                                                                                                                    |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `user_profiles`              | Единственный локальный профиль (всегда одна строка). Пароль есть всегда — "отключение" пароля — это хэш пустой строки (9.7). |
+| `settings`                   | Настройки — глобальные или в рамках одного `connected_accounts` (ФТ-301, ФТ-307).                                             |
+| `connected_accounts`         | Подключённые аккаунты каналов связи. Секрет не персистируется (см. 8.4).                                                      |
+| `person`                     | Собеседники — объединённая карточка человека по всем каналам.                                                                 |
+| `channel_contacts`           | Идентичность собеседника в рамках конкретного подключённого аккаунта.                                                         |
+| `conversations`              | Диалоги на стороне сервиса: `Pending` (кандидат) → `Added` → `Ignored`.                                                        |
+| `conversation_participants`  | Участники групповых/broadcast-диалогов. Собеседниками (`person`) не являются.                                                 |
+| `messages`                   | Сообщения диалога. `channel_type` — осознанная денормализация (НФТ-16).                                                       |
+| `merge_proposals`            | Предложения объединения двух `person` по правилам сопоставления (10.9).                                                       |
+| `relation_change_logs`       | Append-only журнал операций над связями `person`/`channel_contacts`.                                                          |
+| `sync_states`                | Курсоры фоновой синхронизации: `updates` — на аккаунт, `history` — на диалог.                                                 |
 
 ### 8.4. Секреты
 

@@ -8,7 +8,7 @@ public class MergeProposalTests
   [Fact]
   public void Create_WithValidArguments_ReturnsPendingProposal()
   {
-    var proposal = MergeProposal.Create(Guid.NewGuid(), Guid.NewGuid(), MergeConfidence.High, "{}");
+    var proposal = MergeProposal.Create(1, 2, MergeConfidence.High, "{}");
 
     Assert.Equal(ProposalStatus.Pending, proposal.Status);
     Assert.Null(proposal.ResolvedAt);
@@ -17,8 +17,8 @@ public class MergeProposalTests
   [Fact]
   public void Create_OrdersPairTheSameRegardlessOfArgumentOrder()
   {
-    var personA = Guid.NewGuid();
-    var personB = Guid.NewGuid();
+    var personA = 1;
+    var personB = 2;
 
     var proposal1 = MergeProposal.Create(personA, personB, MergeConfidence.High, "{}");
     var proposal2 = MergeProposal.Create(personB, personA, MergeConfidence.High, "{}");
@@ -30,7 +30,7 @@ public class MergeProposalTests
   [Fact]
   public void Create_WithSamePersonTwice_Throws()
   {
-    var personId = Guid.NewGuid();
+    var personId = 1;
 
     Assert.Throws<ArgumentException>(() => MergeProposal.Create(personId, personId, MergeConfidence.High, "{}"));
   }
@@ -38,13 +38,13 @@ public class MergeProposalTests
   [Fact]
   public void Create_WithEmptyReasons_Throws()
   {
-    Assert.Throws<ArgumentException>(() => MergeProposal.Create(Guid.NewGuid(), Guid.NewGuid(), MergeConfidence.High, ""));
+    Assert.Throws<ArgumentException>(() => MergeProposal.Create(1, 2, MergeConfidence.High, ""));
   }
 
   [Fact]
   public void Accept_FromPending_SetsStatusToAccepted()
   {
-    var proposal = MergeProposal.Create(Guid.NewGuid(), Guid.NewGuid(), MergeConfidence.High, "{}");
+    var proposal = MergeProposal.Create(1, 2, MergeConfidence.High, "{}");
 
     proposal.Accept();
 
@@ -55,7 +55,7 @@ public class MergeProposalTests
   [Fact]
   public void Accept_WhenNotPending_Throws()
   {
-    var proposal = MergeProposal.Create(Guid.NewGuid(), Guid.NewGuid(), MergeConfidence.High, "{}");
+    var proposal = MergeProposal.Create(1, 2, MergeConfidence.High, "{}");
     proposal.Accept();
 
     Assert.Throws<InvalidOperationException>(() => proposal.Accept());
@@ -64,7 +64,7 @@ public class MergeProposalTests
   [Fact]
   public void Reject_FromPending_SetsStatusToRejected()
   {
-    var proposal = MergeProposal.Create(Guid.NewGuid(), Guid.NewGuid(), MergeConfidence.High, "{}");
+    var proposal = MergeProposal.Create(1, 2, MergeConfidence.High, "{}");
 
     proposal.Reject();
 
@@ -75,7 +75,7 @@ public class MergeProposalTests
   [Fact]
   public void Reject_WhenNotPending_Throws()
   {
-    var proposal = MergeProposal.Create(Guid.NewGuid(), Guid.NewGuid(), MergeConfidence.High, "{}");
+    var proposal = MergeProposal.Create(1, 2, MergeConfidence.High, "{}");
     proposal.Reject();
 
     Assert.Throws<InvalidOperationException>(() => proposal.Reject());

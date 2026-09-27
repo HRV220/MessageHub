@@ -13,9 +13,10 @@
 
 ## Текущее состояние (на момент составления, 2026-09-23)
 
-- Есть: `MessageHub.Core` — почти все сущности (`Person`, `ChannelContact`, `ConnectedAccount`, `Conversation`, `ConversationParticipant`, `Message`, `MergeProposal`, `RelationChangeLog`, `SyncState`, `UserProfile`) + тесты на часть из них.
+- Есть: `MessageHub.Core` — все сущности (`Person`, `ChannelContact`, `ConnectedAccount`, `Conversation`, `ConversationParticipant`, `Message`, `MergeProposal`, `RelationChangeLog`, `Settings`, `SyncState`, `UserProfile`) приведены к `schema.dbml`/§8.3 ТЗ (T-010…019, T-025…028), тесты есть на все.
 - **Нет** проекта `MessageHub.Application` вообще (в ТЗ, раздел 6.2, он есть) — `MessageHub.Infrastructure`, `MessageHub.Channels`, `MessageHub.API` сейчас пустые заглушки (`Class1.cs` / шаблонный `WeatherForecast`), без DI и без связи с `Core`.
-- Есть три известных расхождения между текущим кодом `Core` и ТЗ/schema.dbml, зафиксированы как отдельные задачи в дорожке 1: `ChannelType` — enum вместо VO (раздел 7.2), `UserProfile` — секретный вопрос вместо `password_salt`/`kdf_params` (раздел 8.3), `ConnectedAccount` — персистентные `SecretRef`/`LastError`, хотя секреты не должны сохраняться (БЗ-02).
+- §8.3 ТЗ и `schema.dbml` синхронизированы (`person.search_name`, `conversations.last_incoming_at/added_at/updated_at`, `sync_states.kind/status/history_from/updated_at`, `messages.attachments_info/edited_at/remote_deleted_at/next_retry_at` — дописаны в текст §8.3). Ссылка на несуществующий `database.md` убрана из шапки `schema.dbml`: эталоном схемы считаются сам `schema.dbml` и §8.3 ТЗ вместе.
+- Остаётся открытым (T-061, ОВ-01): механизм восстановления забытого пароля — в схеме `user_profiles` нет колонок под контрольный вопрос, старая реализация в `UserProfile` (SecurityQuestion/Answer) убрана как не соответствующая схеме.
 
 ## Открытые вопросы, блокирующие часть задач
 
@@ -35,7 +36,7 @@
 - [x] **T-002** Проставить `ProjectReference`: `Infrastructure`/`Channels`/`Api` → `Application` (не напрямую на `Core`, кроме транзитивно); удалить пустые `Class1.cs` (1ч, зависит: T-001) — АРХ-01…03
 - [x] **T-003** `Program.cs`: секции регистрации по слоям (`AddApplication`, `AddInfrastructure`, `AddChannels` — пока пустые методы-расширения) + `/health` эндпоинт (2ч, зависит: T-002) — АРХ-07
 - [x] **T-004** Решить и задокументировать подход к доступу к SQLite (EF Core vs `Microsoft.Data.Sqlite` + Dapper/ручной маппинг) — короткий ADR в `docs/adr/` с обоснованием (НФТ-25/26 требуют маппинг без рефлексии) (2ч, зависит: —) — НФТ-25, НФТ-26
-- [ ] **T-005** Infrastructure: открытие файла SQLite в стандартной папке данных приложения (`%LOCALAPPDATA%`), установка `PRAGMA foreign_keys=ON, journal_mode=WAL, synchronous=NORMAL, busy_timeout` при каждом открытии соединения (3ч, зависит: T-004) — НФТ-13, НФТ-11
+- [x] **T-005** Infrastructure: открытие файла SQLite в стандартной папке данных приложения (`%LOCALAPPDATA%`), установка `PRAGMA foreign_keys=ON, journal_mode=WAL, synchronous=NORMAL, busy_timeout` при каждом открытии соединения (3ч, зависит: T-004) — НФТ-13, НФТ-11
 - [ ] **T-006** Первая миграция/скрипт схемы БД по `schema.dbml` — все таблицы `user_profiles`…`sync_states`, индексы (без CHECK — SQLite ограничен, проверки на уровне приложения) (4ч, зависит: T-005) — НФТ-12
 - [ ] **T-007** Интеграционный тест: миграция применяется на чистой БД, `PRAGMA` реально действуют (`PRAGMA foreign_keys` возвращает 1 и т.п.) (2ч, зависит: T-006) — НФТ-12, НФТ-13
 - [ ] **T-008** Kestrel: слушать только `127.0.0.1`, порт из конфигурации (1ч, зависит: T-003) — БЗ-05
@@ -45,21 +46,25 @@
 
 ## Дорожка 1 — Core: ревизия и довершение доменной модели
 
-- [ ] **T-010** `ChannelType`: enum → VO-`record` (код + валидация формата, раздел 7.2), обновить все места использования в `ConnectedAccount` (2ч, зависит: —) — 7.2 ТЗ, АРХ-05
-- [ ] **T-011** Тесты `ChannelType` VO (валидация формата, равенство по коду, нормализация регистра) (1ч, зависит: T-010) — 7.2 ТЗ
-- [ ] **T-012** `UserProfile`: добавить `PasswordSalt`/`KdfParams` по схеме 8.3; решить (см. открытые вопросы) — оставить `SecurityQuestion`/`Answer` как доп. механизм восстановления или убрать в пользу другого решения по ОВ-01/ФТ-108 (3ч, зависит: —) — 8.3 ТЗ, ФТ-108, ОВ-01
-- [ ] **T-013** Тесты `UserProfile` после правки T-012 (2ч, зависит: T-012) — ФТ-108
-- [ ] **T-014** `ConnectedAccount`: убрать персистентные `SecretRef`/`LastError` из доменной модели (секреты не хранятся — БЗ-02, `LastError` — транзитное поле, не в БД); добавить `Email` и инвариант «`AccountId` xor `Email` заполнен» (3ч, зависит: T-010) — БЗ-02, 8.3 ТЗ
-- [ ] **T-015** Тесты `ConnectedAccount` после T-014, включая инвариант `AccountId`/`Email` (2ч, зависит: T-014) — БЗ-02
-- [ ] **T-016** `Person`: привести к схеме `person` — `DisplayName`, `SearchName` (нормализация для поиска, нижний регистр + ё→е), `Note`, `PreferredChannelContactId`; убрать/переосмыслить `Username` (3ч, зависит: —) — 8.3 ТЗ
-- [ ] **T-017** Тесты `Person` после правки T-016 (2ч, зависит: T-016) — 8.3 ТЗ
-- [ ] **T-018** Метод `Person.SetPreferredChannel` с проверкой, что `ChannelContact` принадлежит этому же `Person` (2ч, зависит: T-016) — 8.3 ТЗ (`person.preferred_channel_contact_id`)
-- [ ] **T-019** Тесты `ChannelContact` (по образцу остальных сущностей — сейчас отсутствуют) (2ч, зависит: —) — —
+- [x] **T-010** `ChannelType`: enum → VO-`record` (код + валидация формата, раздел 7.2), обновить все места использования в `ConnectedAccount` (2ч, зависит: —) — 7.2 ТЗ, АРХ-05
+- [x] **T-011** Тесты `ChannelType` VO (валидация формата, равенство по коду, нормализация регистра) (1ч, зависит: T-010) — 7.2 ТЗ
+- [x] **T-012** `UserProfile`: добавить `PasswordSalt`/`KdfParams`/`CreatedAt`/`UpdatedAt` по схеме 8.3. Решение по ОВ-01/ФТ-108: `SecurityQuestion`/`SecurityAnswerHash` убраны — под них нет колонок в `user_profiles`, а хранить их вне схемы означало бы либо ломать 8.3, либо тихо не персистить. Восстановление пароля остаётся открытым вопросом до T-061 (3-4ч, зависит: —) — 8.3 ТЗ, ФТ-108, ОВ-01
+- [x] **T-013** Тесты `UserProfile` после правки T-012 (2ч, зависит: T-012) — ФТ-108
+- [x] **T-014** `ConnectedAccount`: убрать персистентные `SecretRef`/`LastError` из доменной модели (секреты не хранятся — БЗ-02; `LastError` убран — колонки `last_error` у `connected_accounts` в схеме нет); добавить `Email` и инвариант «`AccountId` xor `Email` заполнен» (3ч, зависит: T-010) — БЗ-02, 8.3 ТЗ
+- [x] **T-015** Тесты `ConnectedAccount` после T-014, включая инвариант `AccountId`/`Email` (2ч, зависит: T-014) — БЗ-02
+- [x] **T-016** `Person`: привести к схеме `person` — `DisplayName`, `SearchName` (нормализация для поиска, нижний регистр + ё→е), `Note`, `PreferredChannelContactId`; убрать/переосмыслить `Username` (3ч, зависит: —) — 8.3 ТЗ
+- [x] **T-017** Тесты `Person` после правки T-016 (2ч, зависит: T-016) — 8.3 ТЗ
+- [x] **T-018** Метод `Person.SetPreferredChannel` с проверкой, что `ChannelContact` принадлежит этому же `Person` (2ч, зависит: T-016) — 8.3 ТЗ (`person.preferred_channel_contact_id`)
+- [x] **T-019** Тесты `ChannelContact` (по образцу остальных сущностей — сейчас отсутствуют) (2ч, зависит: T-026) — —
 - [ ] **T-020** Value Object `PhoneNumber` (нормализация в E.164) (2ч, зависит: —) — 7.1 ТЗ
 - [ ] **T-021** Value Object `EmailAddress` (нижний регистр, базовая валидация формата) (1-2ч, зависит: —) — 7.1 ТЗ
 - [ ] **T-022** Тесты `PhoneNumber`/`EmailAddress` (2ч, зависит: T-020, T-021) — —
 - [ ] **T-023** Value Object `MessageCursor` (`SentAt`, `MessageId`) — сравнение и сортировка для keyset-пагинации (1-2ч, зависит: —) — 9.4 ТЗ
 - [ ] **T-024** Value Object `ChannelCapabilities` (`record`: `CanSend`, `SupportsFullHistory`, `SupportsGroups`, `SupportsBroadcasts`, `SupportsRealtimeUpdates`) (1ч, зависит: —) — 11.2 ТЗ
+- [x] **T-025** `Settings`: реализовать сущность по таблице `settings` (`Scope`, `ConnectedAccountId`, `Key`, `Value`, `UpdatedAt`) — приватный конструктор + фабрика `Create`, инвариант «`ConnectedAccountId` заполнен тогда и только тогда, когда `Scope = Account`» (2-3ч, зависит: —) — 8.3 ТЗ (`settings`)
+- [x] **T-026** `ChannelContact`: добавить `CreatedAt` по схеме `channel_contacts` (1ч, зависит: —) — 8.3 ТЗ (`channel_contacts`)
+- [x] **T-027** `Message`: приведён к схеме `messages` — `ConversationId`, `ClientMessageId`, `SenderParticipantId` (вместо свободной строки `Sender`), `ReceivedAt`, `IsRead`, `LastError`, `RetryCount`, `AttachmentsInfo`, `EditedAt`, `RemoteDeletedAt`, `NextRetryAt`; `ChannelName` → денормализованный `ChannelType` (НФТ-16); `MessageStatus` — `Delivered`/`Read` убраны (не статусы по схеме и по диаграмме 7.4 ТЗ — прочитанность это `IsRead`), добавлен `Received`; фабрики разделены на `CreateIncoming`/`CreateOutgoing`, переходы состояний — `MarkAsSent`/`ScheduleRetry`/`MarkAsFailed`/`Retry` под диаграмму 7.4 ТЗ (4ч, зависит: —) — 8.3 ТЗ (`messages`), НФТ-16, 9.5 ТЗ, ФТ-907
+- [x] **T-028** Тесты `Settings`/`Message` после T-025/T-027 (2ч фактически ушло на оба сразу с T-025/T-027, зависит: T-025, T-027) — 8.3 ТЗ
 
 ---
 

@@ -26,12 +26,6 @@
         "y": 352
       },
       {
-        "name": "people",
-        "schemaName": "public",
-        "x": 41.5,
-        "y": 1072.1887659825668
-      },
-      {
         "name": "conversations",
         "schemaName": "public",
         "x": 1048,
@@ -52,8 +46,8 @@
       {
         "name": "merge_proposals",
         "schemaName": "public",
-        "x": 58.29443359375,
-        "y": 756.7846516481477
+        "x": 17.346307663690453,
+        "y": 1233.98781152538
       },
       {
         "name": "relation_change_logs",
@@ -72,6 +66,12 @@
         "schemaName": "public",
         "x": 624.8818359375,
         "y": 698
+      },
+      {
+        "name": "person",
+        "schemaName": "public",
+        "x": 12,
+        "y": 784
       }
     ],
     "tableGroupCollapseStates": [],

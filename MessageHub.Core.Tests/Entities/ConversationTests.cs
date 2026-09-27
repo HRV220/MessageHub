@@ -9,7 +9,7 @@ public class ConversationTests
   [Fact]
   public void Create_WithoutStatus_ReturnsPendingConversation()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
 
     Assert.Equal(ConversationStatus.Pending, conversation.Status);
     Assert.Null(conversation.AddedAt);
@@ -18,20 +18,20 @@ public class ConversationTests
   [Fact]
   public void Create_WithEmptyConnectedAccountId_Throws()
   {
-    Assert.Throws<ArgumentException>(() => Conversation.Create(Guid.Empty, "ext-1", ConversationType.Group));
+    Assert.Throws<ArgumentException>(() => Conversation.Create(-1, "ext-1", ConversationType.Group));
   }
 
   [Fact]
   public void Create_PersonalAdded_WithoutChannelContactId_Throws()
   {
     Assert.Throws<ArgumentException>(() =>
-      Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Personal, ConversationStatus.Added));
+      Conversation.Create(1, "ext-1", ConversationType.Personal, ConversationStatus.Added));
   }
 
   [Fact]
   public void Create_PersonalAdded_WithChannelContactId_ReturnsAddedConversation()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Personal, ConversationStatus.Added, channelContactId: Guid.NewGuid());
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Personal, ConversationStatus.Added, channelContactId: 2);
 
     Assert.Equal(ConversationStatus.Added, conversation.Status);
     Assert.NotNull(conversation.AddedAt);
@@ -41,13 +41,13 @@ public class ConversationTests
   public void Create_NonPersonal_WithChannelContactId_Throws()
   {
     Assert.Throws<ArgumentException>(() =>
-      Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group, channelContactId: Guid.NewGuid()));
+      Conversation.Create(1, "ext-1", ConversationType.Group, channelContactId: 2));
   }
 
   [Fact]
   public void Add_FromPending_SetsStatusToAdded()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
 
     conversation.Add();
 
@@ -58,7 +58,7 @@ public class ConversationTests
   [Fact]
   public void Add_WhenAlreadyAdded_Throws()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
     conversation.Add();
 
     Assert.Throws<InvalidOperationException>(() => conversation.Add());
@@ -67,7 +67,7 @@ public class ConversationTests
   [Fact]
   public void Add_PersonalWithoutChannelContactId_Throws()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Personal);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Personal);
 
     Assert.Throws<ArgumentException>(() => conversation.Add());
   }
@@ -75,8 +75,8 @@ public class ConversationTests
   [Fact]
   public void Add_PersonalWithChannelContactId_SetsChannelContactId()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Personal);
-    var channelContactId = Guid.NewGuid();
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Personal);
+    var channelContactId = 2;
 
     conversation.Add(channelContactId);
 
@@ -86,7 +86,7 @@ public class ConversationTests
   [Fact]
   public void Ignore_FromPending_SetsStatusToIgnored()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
 
     conversation.Ignore();
 
@@ -96,7 +96,7 @@ public class ConversationTests
   [Fact]
   public void Ignore_WhenAlreadyIgnored_Throws()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
     conversation.Ignore();
 
     Assert.Throws<InvalidOperationException>(() => conversation.Ignore());
@@ -105,7 +105,7 @@ public class ConversationTests
   [Fact]
   public void Add_AfterIgnore_SetsStatusToAdded()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
     conversation.Ignore();
 
     conversation.Add();
@@ -116,7 +116,7 @@ public class ConversationTests
   [Fact]
   public void RecordMessage_Incoming_IncrementsUnreadCount()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
     var sentAt = DateTime.UtcNow;
 
     conversation.RecordMessage(sentAt, "Hello", isIncoming: true);
@@ -130,7 +130,7 @@ public class ConversationTests
   [Fact]
   public void RecordMessage_Outgoing_DoesNotIncrementUnreadCount()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
 
     conversation.RecordMessage(DateTime.UtcNow, "Hello", isIncoming: false);
 
@@ -140,7 +140,7 @@ public class ConversationTests
   [Fact]
   public void MarkRead_ResetsUnreadCount()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
     conversation.RecordMessage(DateTime.UtcNow, "Hello", isIncoming: true);
 
     conversation.MarkRead();
@@ -151,7 +151,7 @@ public class ConversationTests
   [Fact]
   public void AddParticipant_WithNewExternalId_AddsParticipant()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
 
     var participant = conversation.AddParticipant("p-1", "Ivan");
 
@@ -162,7 +162,7 @@ public class ConversationTests
   [Fact]
   public void AddParticipant_WithDuplicateExternalId_Throws()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
     conversation.AddParticipant("p-1");
 
     Assert.Throws<InvalidOperationException>(() => conversation.AddParticipant("p-1"));
@@ -171,7 +171,7 @@ public class ConversationTests
   [Fact]
   public void RemoveParticipant_RemovesMatchingParticipant()
   {
-    var conversation = Conversation.Create(Guid.NewGuid(), "ext-1", ConversationType.Group);
+    var conversation = Conversation.Create(1, "ext-1", ConversationType.Group);
     var participant = conversation.AddParticipant("p-1");
 
     conversation.RemoveParticipant(participant.Id);

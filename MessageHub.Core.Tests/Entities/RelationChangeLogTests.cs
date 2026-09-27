@@ -21,8 +21,8 @@ public class RelationChangeLogTests
   [Fact]
   public void Create_ForMerge_RecordsBothPeopleAndSnapshot()
   {
-    var personId = Guid.NewGuid();
-    var relatedPersonId = Guid.NewGuid();
+    var personId = 1;
+    var relatedPersonId = 2;
 
     var entry = RelationChangeLog.Create(RelationOperation.Merge, personId, relatedPersonId, snapshot: "{}");
 

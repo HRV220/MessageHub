@@ -10,12 +10,12 @@ public class ConversationParticipant
   /// <summary>
   /// Unique identifier of this participant.
   /// </summary>
-  public Guid Id { get; private set; }
+  public int Id { get; private set; }
 
   /// <summary>
   /// Id of the conversation this participant belongs to.
   /// </summary>
-  public Guid ConversationId { get; private set; }
+  public int ConversationId { get; private set; }
 
   /// <summary>
   /// Identifier of this participant in the external service.
@@ -40,9 +40,9 @@ public class ConversationParticipant
   /// Id of the <see cref="ChannelContact"/> this participant was linked to, filled in only if the user
   /// explicitly added this participant as a collocutor.
   /// </summary>
-  public Guid? ChannelContactId { get; private set; }
+  public int? ChannelContactId { get; private set; }
 
-  private ConversationParticipant(Guid id, Guid conversationId, string externalId, string? displayName)
+  private ConversationParticipant(int id, int conversationId, string externalId, string? displayName)
   {
     Id = id;
     ConversationId = conversationId;
@@ -54,12 +54,12 @@ public class ConversationParticipant
   /// Creates a participant for a group or broadcast conversation.
   /// </summary>
   /// <exception cref="ArgumentException"><paramref name="conversationId"/> is empty, or <paramref name="externalId"/> is null or whitespace.</exception>
-  public static ConversationParticipant Create(Guid conversationId, string externalId, string? displayName = null)
+  public static ConversationParticipant Create(int conversationId, string externalId, string? displayName = null)
   {
-    if (conversationId == Guid.Empty)
+    if (conversationId < 0)
       throw new ArgumentException("ConversationId must not be empty.", nameof(conversationId));
 
-    return new ConversationParticipant(Guid.NewGuid(), conversationId, externalId, displayName);
+    return new ConversationParticipant(default, conversationId, externalId, displayName);
   }
 
   /// <summary>
@@ -74,9 +74,9 @@ public class ConversationParticipant
   /// Links this participant to a collocutor, after the user explicitly added it as one.
   /// </summary>
   /// <exception cref="ArgumentException"><paramref name="channelContactId"/> is empty.</exception>
-  public void LinkToChannelContact(Guid channelContactId)
+  public void LinkToChannelContact(int channelContactId)
   {
-    if (channelContactId == Guid.Empty)
+    if (channelContactId < 0)
       throw new ArgumentException("ChannelContactId must not be empty.", nameof(channelContactId));
 
     ChannelContactId = channelContactId;

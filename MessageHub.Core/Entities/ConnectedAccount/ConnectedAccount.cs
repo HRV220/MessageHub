@@ -1,35 +1,46 @@
 using MessageHub.Core.Entities;
 using MessageHub.Core.Entities.ConnectedAccount.Enums;
+using MessageHub.Core.Entities.ConnectedAccount.ValueObjects;
 
 namespace MessageHub.Core.Entities.ConnectedAccount;
 
+/// <summary>
+/// A user's account in an external messaging service (7.1 ТЗ, 8.3 ТЗ — таблица connected_accounts).
+/// Secrets (tokens/passwords) are never part of this entity or persisted anywhere in <c>Core</c> — they
+/// live only in the process's in-memory secret store, outside this aggregate (БЗ-02, БЗ-03, 8.4 ТЗ).
+/// </summary>
 public class ConnectedAccount
 {
   /// <summary>
   /// Unique identifier of this connected account.
   /// </summary>
-  public Guid Id { get; private set; }
+  public int Id { get; private set; }
 
   /// <summary>
   /// Which service this account belongs to.
   /// </summary>
-  public ChannelType ChannelType { get; private set; }
-
-  /// <summary>
-  /// Identifier of this account in the service itself (not the local database id). Null for services
-  /// that have no separate account id — e.g. Email, where the address in <see cref="DisplayName"/>
-  /// (or a future dedicated field) is the only identifier there is.
-  /// </summary>
-  public string? AccountId
+  public ChannelType ChannelType
   {
     get;
     private set
     {
-      if (value is not null && string.IsNullOrWhiteSpace(value))
-        throw new ArgumentException("AccountId must not be empty when provided.", nameof(value));
+      if (value is null)
+        throw new ArgumentException("ChannelType must not be null.", nameof(value));
       field = value;
     }
-  }
+  } = null!;
+
+  /// <summary>
+  /// Identifier of this account in the service itself (not the local database id). Null for services
+  /// that have no separate account id — e.g. Email, where <see cref="Email"/> identifies the account instead.
+  /// </summary>
+  public string? AccountId { get; private set; }
+
+  /// <summary>
+  /// Email identifying this account when the service has no separate account id (e.g. Email). Set exactly
+  /// when <see cref="AccountId"/> is not (8.3 ТЗ, таблица connected_accounts, CHECK).
+  /// </summary>
+  public string? Email { get; private set; }
 
   /// <summary>
   /// Human-readable name shown for this account in the UI.
@@ -49,23 +60,12 @@ public class ConnectedAccount
   /// Current connection state of the account.
   /// </summary>
   public AccountStatus Status { get; private set; }
-  //TODO: Удалить
-  /// <summary>
-  /// Description of the last error, without secrets, when <see cref="Status"/> is <see cref="AccountStatus.Error"/>.
-  /// </summary>
-  public string? LastError { get; private set; }
-  //TODO: Удалить будет локальный сервер вообще непонятно зачем это
-  /// <summary>
-  /// Reference to the secret in the OS secret store. Never the secret itself (БЗ-02, БЗ-03).
-  /// Null only while <see cref="Status"/> is <see cref="AccountStatus.Disconnected"/>.
-  /// </summary>
-  public string? SecretRef { get; private set; }
-  //TODO: Rename enum
+
   /// <summary>
   /// How much history to load when this account was first connected.
   /// </summary>
   public HistoryDepth InitialHistoryDepth { get; private set; }
-  //TODO: What is
+
   /// <summary>
   /// Whether background sync is currently enabled for this account.
   /// </summary>
@@ -91,13 +91,13 @@ public class ConnectedAccount
   /// </summary>
   public IReadOnlyList<ChannelContact> ChannelContacts => _channelContacts;
 
-  private ConnectedAccount(Guid id, ChannelType channelType, string? accountId, string displayName, string secretRef, HistoryDepth initialHistoryDepth)
+  private ConnectedAccount(int id, ChannelType channelType, string? accountId, string? email, string displayName, HistoryDepth initialHistoryDepth)
   {
     Id = id;
     ChannelType = channelType;
     AccountId = accountId;
+    Email = email;
     DisplayName = displayName;
-    SecretRef = secretRef;
     InitialHistoryDepth = initialHistoryDepth;
     Status = AccountStatus.Connected;
     SyncEnabled = true;
@@ -105,55 +105,55 @@ public class ConnectedAccount
   }
 
   /// <summary>
-  /// Connects a new account. The caller must already have completed the service's own authorization
-  /// and stored the resulting secret in the OS secret store — <paramref name="secretRef"/> is only a
-  /// reference to it, never the secret itself.
+  /// Connects a new account. The caller must already have completed the service's own authorization and
+  /// stored the resulting secret in the process's in-memory secret store — this entity never sees it
+  /// (БЗ-02). Exactly one of <paramref name="accountId"/>/<paramref name="email"/> must be provided.
   /// </summary>
-  /// <exception cref="ArgumentException">Any required field is null or whitespace.</exception>
-  public static ConnectedAccount Create(ChannelType channelType, string? accountId, string displayName, string secretRef, HistoryDepth initialHistoryDepth)
+  /// <exception cref="ArgumentException">
+  /// <paramref name="channelType"/> is null, <paramref name="displayName"/> is null or whitespace, or
+  /// <paramref name="accountId"/>/<paramref name="email"/> are not exactly one set.
+  /// </exception>
+  public static ConnectedAccount Create(ChannelType channelType, string? accountId, string? email, string displayName, HistoryDepth initialHistoryDepth)
   {
-    if (string.IsNullOrWhiteSpace(secretRef))
-      throw new ArgumentException("SecretRef must not be empty.", nameof(secretRef));
+    ValidateIdentity(accountId, email);
 
-    return new ConnectedAccount(Guid.NewGuid(), channelType, accountId, displayName, secretRef, initialHistoryDepth);
+    return new ConnectedAccount(default, channelType, accountId, email, displayName, initialHistoryDepth);
+  }
+
+  private static void ValidateIdentity(string? accountId, string? email)
+  {
+    var hasAccountId = !string.IsNullOrWhiteSpace(accountId);
+    var hasEmail = !string.IsNullOrWhiteSpace(email);
+
+    if (hasAccountId == hasEmail)
+      throw new ArgumentException("Exactly one of AccountId/Email must be provided.");
   }
 
   /// <summary>
-  /// Disconnects the account while keeping its local data (messages, contacts). Clears the secret
-  /// reference — removing the actual secret from the OS store is the caller's responsibility (ФТ-207).
+  /// Disconnects the account while keeping its local data (messages, contacts). Removing the secret from
+  /// the in-memory store is the caller's responsibility (ФТ-207).
   /// </summary>
   public void Disconnect()
   {
     Status = AccountStatus.Disconnected;
-    SecretRef = null;
-    LastError = null;
   }
 
   /// <summary>
-  /// Re-authorizes a disconnected or errored account with a freshly stored secret (ФТ-208).
+  /// Re-authorizes a disconnected or errored account, after the caller has stored a fresh secret (ФТ-208).
   /// </summary>
-  /// <exception cref="ArgumentException"><paramref name="secretRef"/> is null or whitespace.</exception>
-  public void Reconnect(string secretRef)
+  public void Reconnect()
   {
-    if (string.IsNullOrWhiteSpace(secretRef))
-      throw new ArgumentException("SecretRef must not be empty.", nameof(secretRef));
-
-    SecretRef = secretRef;
     Status = AccountStatus.Connected;
-    LastError = null;
   }
 
   /// <summary>
-  /// Marks the account as failed after a permanent error from the adapter (ФТ-923).
+  /// Marks the account as failed after a permanent error from the adapter (ФТ-923). The error reason is
+  /// not persisted here — connected_accounts has no such column (8.3 ТЗ) — surfacing it (log/UI) is the
+  /// caller's responsibility.
   /// </summary>
-  /// <exception cref="ArgumentException"><paramref name="reason"/> is null or whitespace.</exception>
-  public void MarkError(string reason)
+  public void MarkError()
   {
-    if (string.IsNullOrWhiteSpace(reason))
-      throw new ArgumentException("Reason must not be empty.", nameof(reason));
-
     Status = AccountStatus.Error;
-    LastError = reason;
   }
 
   /// <summary>
@@ -164,10 +164,7 @@ public class ConnectedAccount
   {
     LastSyncAt = DateTime.UtcNow;
     if (Status == AccountStatus.Error)
-    {
       Status = AccountStatus.Connected;
-      LastError = null;
-    }
   }
 
   /// <summary>

@@ -8,7 +8,7 @@ public class SyncStateTests
   [Fact]
   public void Create_Updates_ReturnsIdleSyncState()
   {
-    var state = SyncState.Create(Guid.NewGuid(), SyncKind.Updates);
+    var state = SyncState.Create(1, SyncKind.Updates);
 
     Assert.Equal(SyncStatus.Idle, state.Status);
     Assert.Null(state.ConversationId);
@@ -17,25 +17,25 @@ public class SyncStateTests
   [Fact]
   public void Create_WithEmptyConnectedAccountId_Throws()
   {
-    Assert.Throws<ArgumentException>(() => SyncState.Create(Guid.Empty, SyncKind.Updates));
+    Assert.Throws<ArgumentException>(() => SyncState.Create(-1, SyncKind.Updates));
   }
 
   [Fact]
   public void Create_History_WithoutConversationId_Throws()
   {
-    Assert.Throws<ArgumentException>(() => SyncState.Create(Guid.NewGuid(), SyncKind.History));
+    Assert.Throws<ArgumentException>(() => SyncState.Create(1, SyncKind.History));
   }
 
   [Fact]
   public void Create_Updates_WithConversationId_Throws()
   {
-    Assert.Throws<ArgumentException>(() => SyncState.Create(Guid.NewGuid(), SyncKind.Updates, Guid.NewGuid()));
+    Assert.Throws<ArgumentException>(() => SyncState.Create(1, SyncKind.Updates, 2));
   }
 
   [Fact]
   public void Create_History_WithConversationId_ReturnsIdleSyncState()
   {
-    var state = SyncState.Create(Guid.NewGuid(), SyncKind.History, Guid.NewGuid());
+    var state = SyncState.Create(1, SyncKind.History, 2);
 
     Assert.Equal(SyncKind.History, state.Kind);
   }
@@ -43,7 +43,7 @@ public class SyncStateTests
   [Fact]
   public void Start_FromIdle_SetsStatusToRunning()
   {
-    var state = SyncState.Create(Guid.NewGuid(), SyncKind.Updates);
+    var state = SyncState.Create(1, SyncKind.Updates);
 
     state.Start();
 
@@ -53,7 +53,7 @@ public class SyncStateTests
   [Fact]
   public void Start_WhenAlreadyRunning_Throws()
   {
-    var state = SyncState.Create(Guid.NewGuid(), SyncKind.Updates);
+    var state = SyncState.Create(1, SyncKind.Updates);
     state.Start();
 
     Assert.Throws<InvalidOperationException>(() => state.Start());
@@ -62,7 +62,7 @@ public class SyncStateTests
   [Fact]
   public void RecordSuccess_SetsStatusToDoneAndClearsRetry()
   {
-    var state = SyncState.Create(Guid.NewGuid(), SyncKind.Updates);
+    var state = SyncState.Create(1, SyncKind.Updates);
     state.Start();
     state.RecordFailure(DateTime.UtcNow.AddMinutes(1));
 
@@ -77,7 +77,7 @@ public class SyncStateTests
   [Fact]
   public void RecordFailure_IncrementsRetryCountAndSetsNextRetryAt()
   {
-    var state = SyncState.Create(Guid.NewGuid(), SyncKind.Updates);
+    var state = SyncState.Create(1, SyncKind.Updates);
     var nextRetryAt = DateTime.UtcNow.AddMinutes(5);
 
     state.RecordFailure(nextRetryAt);

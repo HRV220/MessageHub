@@ -14,17 +14,17 @@ public class MergeProposal
   /// <summary>
   /// Unique identifier of this proposal.
   /// </summary>
-  public Guid Id { get; private set; }
+  public int Id { get; private set; }
 
   /// <summary>
-  /// The smaller of the two person ids in the pair, by canonical (GUID) ordering.
+  /// The smaller of the two person ids in the pair, by canonical ordering.
   /// </summary>
-  public Guid PersonLowId { get; private set; }
+  public int PersonLowId { get; private set; }
 
   /// <summary>
-  /// The larger of the two person ids in the pair, by canonical (GUID) ordering.
+  /// The larger of the two person ids in the pair, by canonical ordering.
   /// </summary>
-  public Guid PersonHighId { get; private set; }
+  public int PersonHighId { get; private set; }
 
   /// <summary>
   /// How confident the matching rules are (ФТ-513: only <see cref="MergeConfidence.High"/> can be auto-merged).
@@ -60,7 +60,7 @@ public class MergeProposal
   /// </summary>
   public DateTime? ResolvedAt { get; private set; }
 
-  private MergeProposal(Guid id, Guid personLowId, Guid personHighId, MergeConfidence confidence, string reasons)
+  private MergeProposal(int id, int personLowId, int personHighId, MergeConfidence confidence, string reasons)
   {
     Id = id;
     PersonLowId = personLowId;
@@ -78,17 +78,17 @@ public class MergeProposal
   /// <exception cref="ArgumentException">
   /// <paramref name="personAId"/> or <paramref name="personBId"/> is empty, they are equal, or <paramref name="reasons"/> is null or whitespace.
   /// </exception>
-  public static MergeProposal Create(Guid personAId, Guid personBId, MergeConfidence confidence, string reasons)
+  public static MergeProposal Create(int personAId, int personBId, MergeConfidence confidence, string reasons)
   {
-    if (personAId == Guid.Empty)
+    if (personAId < 0)
       throw new ArgumentException("PersonAId must not be empty.", nameof(personAId));
-    if (personBId == Guid.Empty)
+    if (personBId < 0)
       throw new ArgumentException("PersonBId must not be empty.", nameof(personBId));
     if (personAId == personBId)
       throw new ArgumentException("Cannot propose merging a person with themselves.", nameof(personBId));
 
-    var (low, high) = personAId.CompareTo(personBId) < 0 ? (personAId, personBId) : (personBId, personAId);
-    return new MergeProposal(Guid.NewGuid(), low, high, confidence, reasons);
+    var (low, high) = personAId < personBId ? (personAId, personBId) : (personBId, personAId);
+    return new MergeProposal(default, low, high, confidence, reasons);
   }
 
   /// <summary>

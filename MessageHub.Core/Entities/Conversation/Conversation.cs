@@ -12,12 +12,12 @@ public class Conversation
   /// <summary>
   /// Unique identifier of this conversation.
   /// </summary>
-  public Guid Id { get; private set; }
+  public int Id { get; private set; }
 
   /// <summary>
   /// The connected account this conversation was seen through.
   /// </summary>
-  public Guid ConnectedAccountId { get; private set; }
+  public int ConnectedAccountId { get; private set; }
 
   /// <summary>
   /// Identifier of this conversation in the external service.
@@ -53,7 +53,7 @@ public class Conversation
   /// Required when <see cref="Type"/> is <see cref="ConversationType.Personal"/> and <see cref="Status"/>
   /// is <see cref="ConversationStatus.Added"/>; must be null otherwise (8.3 ТЗ, таблица conversations, CHECK).
   /// </summary>
-  public Guid? ChannelContactId { get; private set; }
+  public int? ChannelContactId { get; private set; }
 
   /// <summary>
   /// Time of the most recent message in this conversation, in UTC. Denormalized from messages.
@@ -97,7 +97,7 @@ public class Conversation
   /// </summary>
   public IReadOnlyList<ConversationParticipant> Participants => _participants;
 
-  private Conversation(Guid id, Guid connectedAccountId, string externalId, ConversationType type, ConversationStatus status, string? title, Guid? channelContactId)
+  private Conversation(int id, int connectedAccountId, string externalId, ConversationType type, ConversationStatus status, string? title, int? channelContactId)
   {
     Id = id;
     ConnectedAccountId = connectedAccountId;
@@ -121,17 +121,17 @@ public class Conversation
   /// <paramref name="connectedAccountId"/> is empty, <paramref name="externalId"/> is null or whitespace,
   /// or <paramref name="channelContactId"/> is inconsistent with <paramref name="type"/> and <paramref name="status"/>.
   /// </exception>
-  public static Conversation Create(Guid connectedAccountId, string externalId, ConversationType type, ConversationStatus status = ConversationStatus.Pending, string? title = null, Guid? channelContactId = null)
+  public static Conversation Create(int connectedAccountId, string externalId, ConversationType type, ConversationStatus status = ConversationStatus.Pending, string? title = null, int? channelContactId = null)
   {
-    if (connectedAccountId == Guid.Empty)
+    if (connectedAccountId < 0)
       throw new ArgumentException("ConnectedAccountId must not be empty.", nameof(connectedAccountId));
 
     ValidateChannelContact(type, status, channelContactId);
 
-    return new Conversation(Guid.NewGuid(), connectedAccountId, externalId, type, status, title, channelContactId);
+    return new Conversation(default, connectedAccountId, externalId, type, status, title, channelContactId);
   }
 
-  private static void ValidateChannelContact(ConversationType type, ConversationStatus status, Guid? channelContactId)
+  private static void ValidateChannelContact(ConversationType type, ConversationStatus status, int? channelContactId)
   {
     if (type == ConversationType.Personal && status == ConversationStatus.Added && channelContactId is null)
       throw new ArgumentException("ChannelContactId is required for an added personal conversation.", nameof(channelContactId));
@@ -149,7 +149,7 @@ public class Conversation
   /// nor an already-set <see cref="ChannelContactId"/> is available.
   /// </exception>
   /// <exception cref="InvalidOperationException">The conversation is already <see cref="ConversationStatus.Added"/>.</exception>
-  public void Add(Guid? channelContactId = null)
+  public void Add(int? channelContactId = null)
   {
     if (Status == ConversationStatus.Added)
       throw new InvalidOperationException("Conversation is already added.");
@@ -220,7 +220,7 @@ public class Conversation
   /// <summary>
   /// Removes a group/broadcast member, e.g. after they leave the group.
   /// </summary>
-  public void RemoveParticipant(Guid participantId)
+  public void RemoveParticipant(int participantId)
   {
     _participants.RemoveAll(p => p.Id == participantId);
     UpdatedAt = DateTime.UtcNow;

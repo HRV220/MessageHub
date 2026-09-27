@@ -12,12 +12,12 @@ public class ChannelContact
   /// <summary>
   /// Unique identifier of this channel identity.
   /// </summary>
-  public Guid Id { get; private set; }
+  public int Id { get; private set; }
 
   /// <summary>
   /// Id of the person this identity currently belongs to.
   /// </summary>
-  public Guid PersonId { get; private set; }
+  public int PersonId { get; private set; }
 
   /// <summary>
   /// The person this identity belongs to. Not set by the constructor — only <see cref="PersonId"/>
@@ -29,7 +29,7 @@ public class ChannelContact
   /// <summary>
   /// Id of the connected account this identity is seen through.
   /// </summary>
-  public Guid ConnectedAccountId { get; private set; }
+  public int ConnectedAccountId { get; private set; }
 
   /// <summary>
   /// The account this identity is seen through. Same story as <see cref="Person"/>: only
@@ -71,7 +71,12 @@ public class ChannelContact
   /// </summary>
   public string? Email { get; private set; }
 
-  private ChannelContact(Guid id, Guid personId, Guid connectedAccountId, string externalId, string? username, string? displayName, string? phone, string? email)
+  /// <summary>
+  /// When this identity was first seen, in UTC.
+  /// </summary>
+  public DateTime CreatedAt { get; private set; }
+
+  private ChannelContact(int id, int personId, int connectedAccountId, string externalId, string? username, string? displayName, string? phone, string? email)
   {
     Id = id;
     PersonId = personId;
@@ -81,6 +86,7 @@ public class ChannelContact
     DisplayName = displayName;
     Phone = phone;
     Email = email;
+    CreatedAt = DateTime.UtcNow;
   }
 
   /// <summary>
@@ -89,14 +95,14 @@ public class ChannelContact
   /// <exception cref="ArgumentException">
   /// <paramref name="personId"/> or <paramref name="connectedAccountId"/> is empty, or <paramref name="externalId"/> is null or whitespace.
   /// </exception>
-  public static ChannelContact Create(Guid personId, Guid connectedAccountId, string externalId, string? username = null, string? displayName = null, string? phone = null, string? email = null)
+  public static ChannelContact Create(int personId, int connectedAccountId, string externalId, string? username = null, string? displayName = null, string? phone = null, string? email = null)
   {
-    if (personId == Guid.Empty)
+    if (personId < 0)
       throw new ArgumentException("PersonId must not be empty.", nameof(personId));
-    if (connectedAccountId == Guid.Empty)
+    if (connectedAccountId < 0)
       throw new ArgumentException("ConnectedAccountId must not be empty.", nameof(connectedAccountId));
 
-    return new ChannelContact(Guid.NewGuid(), personId, connectedAccountId, externalId, username, displayName, phone, email);
+    return new ChannelContact(default, personId, connectedAccountId, externalId, username, displayName, phone, email);
   }
 
   /// <summary>
@@ -116,9 +122,9 @@ public class ChannelContact
   /// and every conversation and message linked through it, is preserved — only ownership changes.
   /// </summary>
   /// <exception cref="ArgumentException"><paramref name="personId"/> is empty.</exception>
-  public void ReassignTo(Guid personId)
+  public void ReassignTo(int personId)
   {
-    if (personId == Guid.Empty)
+    if (personId < 0)
       throw new ArgumentException("PersonId must not be empty.", nameof(personId));
 
     PersonId = personId;

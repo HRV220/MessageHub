@@ -7,7 +7,7 @@ public class ConversationParticipantTests
   [Fact]
   public void Create_WithValidArguments_ReturnsUnlinkedParticipant()
   {
-    var participant = ConversationParticipant.Create(Guid.NewGuid(), "ext-1", "Ivan");
+    var participant = ConversationParticipant.Create(1, "ext-1", "Ivan");
 
     Assert.Equal("Ivan", participant.DisplayName);
     Assert.Null(participant.ChannelContactId);
@@ -16,20 +16,20 @@ public class ConversationParticipantTests
   [Fact]
   public void Create_WithEmptyConversationId_Throws()
   {
-    Assert.Throws<ArgumentException>(() => ConversationParticipant.Create(Guid.Empty, "ext-1"));
+    Assert.Throws<ArgumentException>(() => ConversationParticipant.Create(-1, "ext-1"));
   }
 
   [Fact]
   public void Create_WithEmptyExternalId_Throws()
   {
-    Assert.Throws<ArgumentException>(() => ConversationParticipant.Create(Guid.NewGuid(), ""));
+    Assert.Throws<ArgumentException>(() => ConversationParticipant.Create(1, ""));
   }
 
   [Fact]
   public void LinkToChannelContact_SetsChannelContactId()
   {
-    var participant = ConversationParticipant.Create(Guid.NewGuid(), "ext-1");
-    var channelContactId = Guid.NewGuid();
+    var participant = ConversationParticipant.Create(1, "ext-1");
+    var channelContactId = 2;
 
     participant.LinkToChannelContact(channelContactId);
 
@@ -39,8 +39,8 @@ public class ConversationParticipantTests
   [Fact]
   public void LinkToChannelContact_WithEmptyId_Throws()
   {
-    var participant = ConversationParticipant.Create(Guid.NewGuid(), "ext-1");
+    var participant = ConversationParticipant.Create(1, "ext-1");
 
-    Assert.Throws<ArgumentException>(() => participant.LinkToChannelContact(Guid.Empty));
+    Assert.Throws<ArgumentException>(() => participant.LinkToChannelContact(-1));
   }
 }
