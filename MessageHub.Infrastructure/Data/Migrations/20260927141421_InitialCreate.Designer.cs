@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MessageHub.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(MessageHubDbContext))]
-    [Migration("20260927134931_InitialCreate")]
+    [Migration("20260927141421_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

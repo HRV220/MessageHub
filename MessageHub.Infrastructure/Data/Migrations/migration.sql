@@ -224,7 +224,7 @@ CREATE UNIQUE INDEX "ux_sync_states_account_updates" ON "sync_states" ("connecte
 CREATE UNIQUE INDEX "ux_sync_states_conversation_history" ON "sync_states" ("conversation_id") WHERE kind = 'History';
 
 INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-VALUES ('20260927134931_InitialCreate', '10.0.12');
+VALUES ('20260927141421_InitialCreate', '10.0.12');
 
 COMMIT;
 
