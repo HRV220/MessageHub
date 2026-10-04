@@ -8,7 +8,6 @@ using MessageHub.Core.Entities.Message;
 using MessageHub.Core.Entities.RelationChangeLog;
 using MessageHub.Core.Entities.Settings;
 using MessageHub.Core.Entities.SyncState;
-using MessageHub.Infrastructure.Data.Interceptors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -36,9 +35,7 @@ public class MessageHubDbContext : DbContext
   {
     if (!optionsBuilder.IsConfigured)
     {
-      optionsBuilder
-        .UseSqlite($"Data Source={DatabasePath.Get()}")
-        .AddInterceptors(new SqliteConnectionInterceptor());
+      optionsBuilder.UseMessageHubSqlite($"Data Source={DatabasePath.Get()}");
     }
   }
 
