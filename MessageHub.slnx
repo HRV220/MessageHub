@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="MessageHub.API.Tests/MessageHub.API.Tests.csproj" />
   <Project Path="MessageHub.API/MessageHub.API.csproj" />
   <Project Path="MessageHub.Application/MessageHub.Application.csproj" />
   <Project Path="MessageHub.Channels/MessageHub.Channels.csproj" />

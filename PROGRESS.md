@@ -1,4 +1,30 @@
-# Текущая задача: T-008 — Kestrel слушает только 127.0.0.1 (БЗ-05)
+# Текущая задача: T-009 — middleware проверки Host/Origin, CORS запрещён (БЗ-07)
+
+Списки разрешённых значений — в `MessageHub.API/appsettings.json`, секция `Security`
+(`AllowedHosts` — с портом, без схемы; `AllowedOrigins` — со схемой). Читаются через `IConfiguration`.
+
+## Решения
+
+- Свой middleware `CheckOriginMiddleware`; `AddCors`/`UseCors` не подключаются (CORS запрещён по умолчанию).
+- Порядок проверок: `Host` (всегда) → `Origin`. Отказ — 403 без тела, `_next` не вызывается.
+- Пустой `Origin`: безопасные методы (GET/HEAD/OPTIONS) проходят, изменяющие — 403.
+- Сравнение — точное, без регистра (`HashSet` + `OrdinalIgnoreCase`), без `StartsWith`.
+- Middleware подключается до `MapHealthChecks`, `/health` тоже под проверкой.
+- Тесты — `MessageHub.API.Tests` на `DefaultHttpContext` (без поднятия БД).
+
+## Чеклист
+
+- [x] Исследование (БЗ-07, текущий черновик middleware)
+- [x] Дописать `CheckOriginMiddleware` (Host, Origin, 403, `_next`)
+- [x] Подключить в `Program.cs` до `MapHealthChecks`
+- [x] Проект `MessageHub.API.Tests` + тесты (основные случаи + порт/регистр/`null`)
+- [x] Проверка `curl` на запущенном API
+- [x] `dotnet build` + `dotnet test`
+- [x] Отметить T-009 в `docs/TASKS.md`
+
+---
+
+# Предыдущая задача: T-008 — Kestrel слушает только 127.0.0.1 (БЗ-05)
 
 Адрес и порт задаются в единственном файле конфигурации `MessageHub.API/appsettings.json`
 (`Kestrel:Endpoints:Http:Url = http://127.0.0.1:5000`). Порт переопределяется переменной
