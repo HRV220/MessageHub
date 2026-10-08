@@ -1,3 +1,5 @@
+using MessageHub.Core.ValueObjects;
+
 namespace MessageHub.Core.Entities;
 
 /// <summary>
@@ -42,9 +44,9 @@ public class Person
   public string SearchName { get; private set; } = null!;
 
   /// <summary>
-  /// Phone number, normalized to E.164, if known.
+  /// Phone number (E.164), if known.
   /// </summary>
-  public string? Phone { get; private set; }
+  public PhoneNumber? Phone { get; private set; }
 
   /// <summary>
   /// Email address, lower-cased, if known.
@@ -79,7 +81,7 @@ public class Person
   /// </summary>
   public IReadOnlyList<ChannelContact> ChannelContacts => _channelContacts;
 
-  private Person(int id, string displayName, string? firstName, string? lastName, string? phone, string? email, string? note)
+  private Person(int id, string displayName, string? firstName, string? lastName, PhoneNumber? phone, string? email, string? note)
   {
     Id = id;
     DisplayName = displayName;
@@ -97,7 +99,7 @@ public class Person
   /// Creates a new person. Only <paramref name="displayName"/> is required — the rest may be filled in later.
   /// </summary>
   /// <exception cref="ArgumentException"><paramref name="displayName"/> is null or whitespace.</exception>
-  public static Person Create(string displayName, string? firstName = null, string? lastName = null, string? phone = null, string? email = null, string? note = null)
+  public static Person Create(string displayName, string? firstName = null, string? lastName = null, PhoneNumber? phone = null, string? email = null, string? note = null)
   {
     return new Person(default, displayName, firstName, lastName, phone, email, note);
   }
@@ -118,7 +120,7 @@ public class Person
   /// <summary>
   /// Changes the person's phone number. Pass null to clear it.
   /// </summary>
-  public void ChangePhone(string? phone)
+  public void ChangePhone(PhoneNumber? phone)
   {
     Phone = phone;
     UpdatedAt = DateTime.UtcNow;
@@ -162,7 +164,7 @@ public class Person
   /// </summary>
   /// <exception cref="ArgumentException"><paramref name="connectedAccountId"/> is empty, or <paramref name="externalId"/> is null or whitespace.</exception>
   /// <exception cref="InvalidOperationException">This person already has an identity with the same <paramref name="connectedAccountId"/> and <paramref name="externalId"/>.</exception>
-  public ChannelContact AddChannelContact(int connectedAccountId, string externalId, string? username = null, string? displayName = null, string? phone = null, string? email = null)
+  public ChannelContact AddChannelContact(int connectedAccountId, string externalId, string? username = null, string? displayName = null, PhoneNumber? phone = null, string? email = null)
   {
     if (_channelContacts.Any(c => c.ConnectedAccountId == connectedAccountId && c.ExternalId == externalId))
       throw new InvalidOperationException("This channel identity is already linked to this person.");

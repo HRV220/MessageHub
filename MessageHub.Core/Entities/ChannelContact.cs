@@ -1,3 +1,4 @@
+using MessageHub.Core.ValueObjects;
 using ConnectedAccountEntity = MessageHub.Core.Entities.ConnectedAccount.ConnectedAccount;
 
 namespace MessageHub.Core.Entities;
@@ -64,7 +65,7 @@ public class ChannelContact
   /// <summary>
   /// Phone number reported by the service, if any.
   /// </summary>
-  public string? Phone { get; private set; }
+  public PhoneNumber? Phone { get; private set; }
 
   /// <summary>
   /// Email address reported by the service, if any.
@@ -76,7 +77,7 @@ public class ChannelContact
   /// </summary>
   public DateTime CreatedAt { get; private set; }
 
-  private ChannelContact(int id, int personId, int connectedAccountId, string externalId, string? username, string? displayName, string? phone, string? email)
+  private ChannelContact(int id, int personId, int connectedAccountId, string externalId, string? username, string? displayName, PhoneNumber? phone, string? email)
   {
     Id = id;
     PersonId = personId;
@@ -95,7 +96,7 @@ public class ChannelContact
   /// <exception cref="ArgumentException">
   /// <paramref name="personId"/> or <paramref name="connectedAccountId"/> is empty, or <paramref name="externalId"/> is null or whitespace.
   /// </exception>
-  public static ChannelContact Create(int personId, int connectedAccountId, string externalId, string? username = null, string? displayName = null, string? phone = null, string? email = null)
+  public static ChannelContact Create(int personId, int connectedAccountId, string externalId, string? username = null, string? displayName = null, PhoneNumber? phone = null, string? email = null)
   {
     if (personId < 0)
       throw new ArgumentException("PersonId must not be empty.", nameof(personId));
@@ -109,7 +110,7 @@ public class ChannelContact
   /// Refreshes the profile fields the service reports for this contact (username, name, phone, email),
   /// typically during background sync.
   /// </summary>
-  public void UpdateProfile(string? username, string? displayName, string? phone, string? email)
+  public void UpdateProfile(string? username, string? displayName, PhoneNumber? phone, string? email)
   {
     Username = username;
     DisplayName = displayName;
