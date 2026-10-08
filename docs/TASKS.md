@@ -56,9 +56,12 @@
 - [x] **T-017** Тесты `Person` после правки T-016 (2ч, зависит: T-016) — 8.3 ТЗ
 - [x] **T-018** Метод `Person.SetPreferredChannel` с проверкой, что `ChannelContact` принадлежит этому же `Person` (2ч, зависит: T-016) — 8.3 ТЗ (`person.preferred_channel_contact_id`)
 - [x] **T-019** Тесты `ChannelContact` (по образцу остальных сущностей — сейчас отсутствуют) (2ч, зависит: T-026) — —
-- [ ] **T-020** Value Object `PhoneNumber` (нормализация в E.164) (2ч, зависит: —) — 7.1 ТЗ
-- [ ] **T-021** Value Object `EmailAddress` (нижний регистр, базовая валидация формата) (1-2ч, зависит: —) — 7.1 ТЗ
-- [ ] **T-022** Тесты `PhoneNumber`/`EmailAddress` (2ч, зависит: T-020, T-021) — —
+- [x] **T-020** Value Object `PhoneNumber` (нормализация в E.164) — `MessageHub.Core/ValueObjects/PhoneNumber.cs`, `CountryCode` + `Number`, валидация в setter'ах; `Person.Phone`/`ChannelContact.Phone` переведены на `PhoneNumber?` (2ч, зависит: —) — 7.1 ТЗ
+- [x] **T-021** Value Object `EmailAddress` (нижний регистр, базовая валидация формата) — в `MessageHub.Core/ValueObjects/`, по образцу `PhoneNumber` (1-2ч, зависит: —) — 7.1 ТЗ
+- [ ] **T-022** Тесты `PhoneNumber` (написаны в T-020) / `EmailAddress` (2ч, зависит: T-020, T-021) — —
+- [ ] **T-029** `Person.Email`, `ChannelContact.Email` (и `ConnectedAccount.Email`, если решено) → `EmailAddress?`, обновить фабрики/`Change*`/`UpdateProfile` и тесты сущностей (как уже сделано для `Phone`) (2ч, зависит: T-021) — 7.1 ТЗ
+- [ ] **T-038** Infrastructure: `MessageHubDbContext` — маппинг `PhoneNumber`/`EmailAddress` через `HasConversion` в существующие колонки `phone`/`email` (`person`, `channel_contacts`, при необходимости `connected_accounts`), сохранить фильтрованные индексы `ix_*_phone`/`ix_*_email`. **Сначала решить:** колонка `phone` хранит одну E.164-строку, а `PhoneNumber` состоит из `CountryCode` + `Number` — для чтения из БД нужен либо разбор строки по таблице кодов ITU, либо две колонки (тогда менять `schema.dbml`, §8.3 и миграцию). До выполнения `MessageHub.Infrastructure.Tests` красные: EF не может смэппить `Phone` (3ч, зависит: T-020, T-021, T-029) — 8.3 ТЗ, НФТ-25
+- [ ] **T-039** Infrastructure: интеграционный тест round-trip `Person`/`ChannelContact` с `PhoneNumber`/`EmailAddress` (запись → чтение → равенство; `NULL`), миграции применяются на чистой БД (2ч, зависит: T-038) — 8.3 ТЗ
 - [ ] **T-023** Value Object `MessageCursor` (`SentAt`, `MessageId`) — сравнение и сортировка для keyset-пагинации (1-2ч, зависит: —) — 9.4 ТЗ
 - [ ] **T-024** Value Object `ChannelCapabilities` (`record`: `CanSend`, `SupportsFullHistory`, `SupportsGroups`, `SupportsBroadcasts`, `SupportsRealtimeUpdates`) (1ч, зависит: —) — 11.2 ТЗ
 - [x] **T-025** `Settings`: реализовать сущность по таблице `settings` (`Scope`, `ConnectedAccountId`, `Key`, `Value`, `UpdatedAt`) — приватный конструктор + фабрика `Create`, инвариант «`ConnectedAccountId` заполнен тогда и только тогда, когда `Scope = Account`» (2-3ч, зависит: —) — 8.3 ТЗ (`settings`)
